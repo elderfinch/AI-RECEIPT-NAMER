@@ -126,7 +126,6 @@
         const JSZip = window.JSZip;
         const { pdfjsLib } = window;
         
-        // **THE FIX**: Set the path for the pdf.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         // --- 2. CHART OF ACCOUNTS (From your PDF) ---
@@ -259,7 +258,7 @@
                 progressBar.value = 0;
                 progressBar.max = numPages;
 
-                let ocrBatch = []; // <-- NEW: Array to hold all OCR text
+                let ocrBatch = []; 
 
                 for (let i = 0; i < numPages; i++) {
                     const pageNum = i + 1;
@@ -280,7 +279,7 @@
                     statusText.textContent = `Page ${pageNum}: Reading text (OCR)...`;
                     const { data: { text: ocrText } } = await tesseractWorker.recognize(imageBase64);
                     
-                    // D. <-- NEW: Add to batch instead of calling API
+                    // D. Add to batch
                     ocrBatch.push({
                         id: i, // Use the index as the ID
                         text: ocrText
@@ -289,22 +288,21 @@
                     progressBar.value = pageNum;
                 }
 
-                // Step 3: <-- NEW: Run ONE Gemini call for the whole batch
+                // Step 3: Run ONE Gemini call for the whole batch
                 statusText.textContent = `Analyzing all ${numPages} receipts with AI... (this may take a moment)`;
-                const prompt = buildLLMBatchPrompt(ocrBatch); // <-- NEW function call
-                console.log(ocrBatch)
-                const processedResults = await callGeminiAPI(prompt); // <-- ONE call
+                const prompt = buildLLMBatchPrompt(ocrBatch);
+                const processedResults = await callAIFallback(prompt); // <-- Use new fallback function
                 
                 // Step 4: Render Table
                 statusText.textContent = "Done! Rendering table...";
-                renderTable(processedResults); // <-- Pass the whole array of results
+                renderTable(processedResults); 
                 resultsSection.classList.remove('hidden');
                 statusContainer.classList.add('hidden');
 
             } catch (err) {
                 console.error(err);
                 statusText.textContent = `Error: ${err.message}`;
-                alert(`An error occurred. Check the console for details.\nDid you set your API key correctly?`);
+                alert(`An error occurred: ${err.message}\nCheck the console for details.`);
             } finally {
                 setLoading(false);
             }
@@ -322,7 +320,7 @@
             }
         }
 
-        // --- 7. NEW PDF-TO-IMAGE FUNCTION ---
+        // --- 7. PDF-TO-IMAGE FUNCTION ---
         async function convertPdfPageToImage(pdfBytes) {
             // Load the PDF data into pdf.js
             const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
@@ -349,103 +347,128 @@
         }
 
         // --- 8. AI & PROMPT LOGIC ---
+        
         function buildLLMBatchPrompt(ocrArray) {
-            // Build the COA list for the prompt (same as before)
+            // Build the COA list for the prompt
             const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `- ${a.number}: ${a.name}`).join("\n");
             const categoriesText = PREFERRED_CATEGORIES.join("\n");
             
-            // --- NEW: Build the batch text ---
+            // Build the batch text
             const batchText = ocrArray.map(receipt => {
-                                return `--- RECEIPT ${receipt.id} ---
-                ${receipt.text}
-                `; // Add delimiters
-                            }).join("\n"); // Join all receipts into one big string
+                return `--- RECEIPT ${receipt.id} ---
+${receipt.text}
+`; // Add delimiters
+            }).join("\n"); // Join all receipts into one big string
 
-                            return `
-                You are an expert financial analyst. Analyze the raw OCR text from a BATCH of receipts.
-                Each receipt is delimited by "--- RECEIPT [ID] ---".
+            return `
+You are an expert financial analyst. Analyze the raw OCR text from a BATCH of receipts.
+Each receipt is delimited by "--- RECEIPT [ID] ---".
 
-                Respond *only* with a single valid JSON array, where each object corresponds to one receipt.
-                The format MUST be:
-                [
-                {
-                    "id": "ID_FROM_INPUT",
-                    "vendor": "The merchant or store name (IN ALL CAPS)",
-                    "total": "The final total amount as a number (e.g., 123.45)",
-                    "currency": "The 3-letter currency code (MZN, USD, or ZAR). Default to MZN if unsure.",
-                    "category": "The best matching category (IN ALL CAPS)",
-                    "account_number": "The matching account number (e.g., '000 5170')"
-                }
-                ]
+Respond *only* with a single valid JSON array, where each object corresponds to one receipt.
+The format MUST be:
+[
+  {
+    "id": "ID_FROM_INPUT",
+    "vendor": "The merchant or store name (IN ALL CAPS)",
+    "total": "The final total amount as a number (e.g., 123.45)",
+    "currency": "The 3-letter currency code (MZN, USD, or ZAR). Default to MZN if unsure.",
+    "category": "The best matching category (IN ALL CAPS)",
+    "account_number": "The matching account number (e.g., '000 5170')"
+  }
+]
 
-                Do not add markdown \`\`\`json or any commentary. Ensure the output is a single, valid JSON array.
+Do not add markdown \`\`\`json or any commentary. Ensure the output is a single, valid JSON array.
 
-                Here is your Chart of Accounts:
-                ---
-                ${coaText}
-                ---
+Here is your Chart of Accounts:
+---
+${coaText}
+---
 
-                Here are your 7 Preferred Categories:
-                ---
-                ${categoriesText}
-                ---
+Here are your 7 Preferred Categories:
+---
+${categoriesText}
+---
 
-                PROCEDURE:
-                1.  Read the entire batch of OCR texts.
-                2.  For *each* receipt, perform the following:
-                3.  Find the vendor, total, currency.
-                4.  Determine the purchase's purpose.
-                5.  Match this purpose to the *best* account in the Chart of Accounts.
-                6.  Match this purpose to the *best* category in the 7 Preferred Categories.
-                7.  Add the resulting JSON object to the array, making sure the "id" matches the "--- RECEIPT [ID] ---".
-                8.  Return the *single* JSON array.
+PROCEDURE:
+1.  Read the entire batch of OCR texts.
+2.  For *each* receipt, perform the following:
+3.  Find the vendor, total, currency.
+4.  Determine the purchase's purpose.
+5.  Match this purpose to the *best* account in the Chart of Accounts.
+6.  Match this purpose to the *best* category in the 7 Preferred Categories.
+7.  Add the resulting JSON object to the array, making sure the "id" matches the "--- RECEIPT [ID] ---".
+8.  Return the *single* JSON array.
 
-                Here is the batch of OCR texts:
-                ---
-                ${batchText}
-                ---
-                `;
+Here is the batch of OCR texts:
+---
+${batchText}
+---
+`;
         }
 
-        async function callGeminiAPI(prompt) {
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${currentApiKey}`;
+        /**
+         * --- NEW: AI FALLBACK FUNCTION ---
+         * Tries a list of models in order until one succeeds.
+         */
+        async function callAIFallback(prompt) {
+            
+            // List of models to try, from newest to oldest.
+            const models = [
+                "gemini-2.5-flash", // User's preferred model
+                "gemini-1.5-flash-latest" // Proven fallback
+            ];
             
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }]
             };
 
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            for (const model of models) {
+                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
+                
+                try {
+                    console.log(`Attempting to call AI model: ${model}`);
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-            if (!response.ok) {
-                const errorBody = await response.json();
-                throw new Error(`Gemini API Error: ${errorBody.error.message}`);
-            }
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        // This is a "soft" failure, log it and try the next model
+                        console.warn(`Model ${model} failed: ${errorBody.error.message}`);
+                        // Don't throw; just continue to the next iteration of the loop
+                    } else {
+                        // SUCCESS!
+                        const data = await response.json();
+                        const jsonResponse = data.candidates[0].content.parts[0].text;
+                        const results = JSON.parse(jsonResponse);
+                        
+                        if (!Array.isArray(results)) {
+                            throw new Error("AI did not return an array.");
+                        }
+                        
+                        console.log(`Successfully got response from ${model}`);
+                        return results; // Return the successful result
+                    }
 
-            const data = await response.json();
-            
-            try {
-                const jsonResponse = data.candidates[0].content.parts[0].text;
-                // The AI should return an array. We parse it and return it directly.
-                const results = JSON.parse(jsonResponse);
-                if (!Array.isArray(results)) {
-                    throw new Error("AI did not return an array.");
+                } catch (err) {
+                    // This is a "hard" failure (network error, etc.)
+                    console.warn(`Network or parsing error for model ${model}:`, err);
+                    // Continue to the next model
                 }
-                return results;
-            } catch (err) {
-                console.error("Failed to parse AI response:", data.candidates[0].content.parts[0].text, err);
-                throw new Error("AI did not return valid JSON array. Check console for details.");
             }
+            
+            // If the loop finishes without returning, all models have failed.
+            throw new Error("All AI models failed. Please check your API key and network connection, or try again later.");
         }
 
+
         // --- 9. UI & TABLE LOGIC ---
+
         function renderTable(results) {
             tableBody.innerHTML = ''; // Clear old results
 
-            // --- NEW: Create a map of results for easy, ordered lookup ---
             const resultMap = new Map();
             if (Array.isArray(results)) {
                 for (const result of results) {
@@ -455,9 +478,7 @@
                 console.error("Render error: AI results were not an array.", results);
             }
 
-            // --- NEW: Loop from 0 to numPages to ensure correct order ---
             for (let index = 0; index < allPageBytes.length; index++) {
-                // Get result from the map or an empty object if AI failed on this one
                 const result = resultMap.get(String(index)) || {}; 
                 
                 const tr = document.createElement('tr');
@@ -531,7 +552,7 @@
                 });
             });
         }
-        
+
         function showPreview(index) {
             try {
                 const pdfBytes = allPageBytes[index];
