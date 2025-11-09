@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "LDS Finance Helper",
+  "version": "1.0",
+  "description": "AI-powered financial document processing for IMOS and Card Recon.",
+  "icons": {
+    "48": "icon.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Finance Helper"
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ]
+}

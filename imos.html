@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IMOS Vendor Payment AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>     
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+
+    <style>
+        .line-item-row { transition: all 0.2s; }
+        .pdf-preview-pane { height: 80vh; }
+    </style>
+</head>
+<body class="bg-base-200 h-screen flex flex-col">
+    <div class="navbar bg-base-100 shadow-sm shrink-0">
+        <div class="flex-1">
+            <span class="text-xl font-bold px-4 text-primary">IMOS Vendor AI</span>
+        </div>
+        <div class="flex-none">
+            <button id="settings-btn" class="btn btn-ghost btn-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden">
+        <div class="w-1/2 p-4 overflow-y-auto">
+            
+            <div class="card bg-base-100 shadow-md mb-4">
+                <div class="card-body p-4">
+                    <input type="file" id="file-input" class="file-input file-input-bordered file-input-primary w-full" accept=".pdf" />
+                    <button id="process-btn" class="btn btn-primary w-full mt-2" disabled>
+                        ✨ ANALYZE INVOICE WITH AI
+                    </button>
+                    <div id="loading-indicator" class="hidden flex justify-center mt-2">
+                        <span class="loading loading-dots loading-lg text-primary"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body p-4 gap-3">
+                    <h2 class="card-title text-sm opacity-50">Invoice Details</h2>
+                    
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Vendor</span></label>
+                        <select id="vendor-select" class="select select-bordered w-full">
+                            <option value="">Select a vendor...</option>
+                            </select>
+                        <label class="label">
+                            <span class="label-text-alt text-warning hidden" id="vendor-warning">Vendor not found automatically. Please select.</span>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <div class="form-control w-1/2">
+                            <label class="label"><span class="label-text font-bold">Invoice #</span></label>
+                            <input type="text" id="invoice-num" class="input input-bordered" placeholder="e.g. INV00123" />
+                        </div>
+                         <div class="form-control w-1/2">
+                            <label class="label"><span class="label-text font-bold">Total (Ref)</span></label>
+                            <input type="text" id="invoice-total" class="input input-bordered" readonly placeholder="0.00" />
+                        </div>
+                    </div>
+
+                    <hr class="my-2"/>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold">Line Items</h3>
+                            <button class="btn btn-xs btn-outline" onclick="addLineItem()">+ Add Line</button>
+                        </div>
+                        <div id="line-items-container" class="flex flex-col gap-2">
+                            </div>
+                    </div>
+                    
+                    <div class="form-control w-full mt-2 bg-base-200 p-2 rounded-box">
+                        <label class="label py-0">
+                            <span class="label-text font-semibold">Tax (Optional)</span>
+                            <input type="number" id="tax-amount" class="input input-sm input-bordered w-32 text-right" placeholder="0.00" />
+                        </label>
+                    </div>
+
+                    <div class="mt-6">
+                        <a id="imos-link-btn" href="#" target="_blank" class="btn btn-success btn-lg w-full shadow-lg disabled" onclick="return validateForm(event)">
+                            🚀 OPEN IN IMOS
+                        </a>
+                        <p class="text-xs text-center mt-2 opacity-75">Requires IMOS Auto Payment Filler userscript</p>
+                     </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="w-1/2 bg-base-300 p-2 h-full">
+             <iframe id="pdf-preview-frame" class="w-full h-full rounded-box shadow-inner" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <dialog id="settings-modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Settings</h3>
+            <div class="form-control w-full max-w-xs mt-4">
+                <label class="label"><span class="label-text">Gemini API Key</span></label>
+                <input type="password" id="api-key-input" class="input input-bordered w-full max-w-xs" />
+            </div>
+             <div class="modal-action">
+                <form method="dialog"><button class="btn">Close</button></form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+
+    <template id="line-item-template">
+        <div class="line-item-row flex gap-1 items-end p-2 bg-base-200 rounded-box relative group">
+            <div class="form-control flex-1">
+                <label class="label py-0"><span class="label-text text-xs">Description</span></label>
+                <input type="text" class="input input-sm input-bordered li-desc" placeholder="DESC" />
+            </div>
+            <div class="form-control w-1/3">
+                <label class="label py-0"><span class="label-text text-xs">Account</span></label>
+                 <select class="select select-bordered select-sm li-acct">
+                    </select>
+            </div>
+            <div class="form-control w-24">
+                <label class="label py-0"><span class="label-text text-xs">Amount</span></label>
+                <input type="number" class="input input-sm input-bordered li-val" placeholder="0.00" step="0.01" />
+            </div>
+            <button class="btn btn-xs btn-ghost text-error absolute -top-2 -right-2 opacity-0 group-hover:opacity-100" onclick="this.closest('.line-item-row').remove()">×</button>
+        </div>
+    </template>
+
+    <script>
+        // --- CONFIGURATION & GLOBALS ---
+        let VENDORS = []; // Loaded from vendors.json
+        let fuse; // Fuzzy search instance
+        let currentPdfBytes = null;
+        
+        const CHART_OF_ACCOUNTS = [
+             { number: "4005102", name: "Travel - In field" },
+             { number: "4005930", name: "Food and Personal Items" },
+             { number: "0005200", name: "Operating Materials" },
+             { number: "0005370", name: "Telephone and Internet" },
+             { number: "0005772", name: "Vehicle Maintenance" },
+             { number: "0005170", name: "Vehicle Gasoline" },
+             { number: "0005862", name: "Rent - Admin" },
+             { number: "4005862", name: "Rent - Young Missionaries" },
+             { number: "0005868", name: "Utilities - Admin" },
+             { number: "4005868", name: "Utilities - Young Miss." },
+             { number: "0005496", name: "Luncheons & Hosting" }
+             // Add more as needed
+        ];
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadSettings();
+            await loadVendorData();
+            initUI();
+        });
+
+        async function loadVendorData() {
+            try {
+                const resp = await fetch('vendors.json');
+                const data = await resp.json();
+                VENDORS = data.vendorListItems || [];
+                
+                // Initialize Fuse.js for fuzzy searching vendors
+                fuse = new Fuse(VENDORS, {
+                    keys: ['vendorName', 'normalizedVendorName', 'vendorDescription'],
+                    threshold: 0.4
+                });
+
+                populateVendorSelect();
+            } catch (e) {
+                alert("Error loading vendors.json. Is it in the extension folder?");
+                console.error(e);
+            }
+        }
+
+        function populateVendorSelect() {
+            const sel = document.getElementById('vendor-select');
+            VENDORS.sort((a,b) => a.vendorName.localeCompare(b.vendorName)).forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.vendorId;
+                opt.textContent = `${v.vendorName} (${v.vendorDescription.substring(0,15)}...)`;
+                sel.appendChild(opt);
+            });
+        }
+
+        function populateCoaSelect(selectElement) {
+             selectElement.innerHTML = '<option value="">Select Acct</option>';
+             CHART_OF_ACCOUNTS.forEach(acct => {
+                 const opt = document.createElement('option');
+                 opt.value = acct.number;
+                 opt.textContent = `${acct.number} - ${acct.name}`;
+                 selectElement.appendChild(opt);
+             });
+        }
+
+        function initUI() {
+            // File input handler
+            document.getElementById('file-input').addEventListener('change', handleFileSelect);
+            // Settings handler
+            document.getElementById('settings-btn').addEventListener('click', () => document.getElementById('settings-modal').showModal());
+            document.getElementById('api-key-input').addEventListener('change', (e) => localStorage.setItem('gemini_api_key', e.target.value));
+            // Process button
+            document.getElementById('process-btn').addEventListener('click', processInvoiceWithAI);
+            // Initial empty line item
+            addLineItem();
+        }
+
+        function loadSettings() {
+            document.getElementById('api-key-input').value = localStorage.getItem('gemini_api_key') || '';
+        }
+
+        async function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Enable process button
+            document.getElementById('process-btn').disabled = false;
+
+            // Display PDF
+            const url = URL.createObjectURL(file);
+            document.getElementById('pdf-preview-frame').src = url;
+
+            // Read bytes for AI
+            currentPdfBytes = await file.arrayBuffer();
+        }
+
+        // --- AI PROCESSING ---
+        async function processInvoiceWithAI() {
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) { alert("Please set Gemini API Key in settings."); return; }
+
+            setLoading(true);
+            try {
+                // 1. Prepare Image/PDF data for Gemini
+                // Note: Gemini API often handles standard base64 PDF if small enough, 
+                // or we might need to convert first page to image if PDF is problematic.
+                // For V1 we'll try direct PDF base64.
+                const base64PDF = await arrayBufferToBase64(currentPdfBytes);
+
+                // 2. Build Payload
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: `Extract the following from this invoice:
+                                    1. Vendor Name (exact as appears).
+                                    2. Invoice Number (if none, generate one starting with INV followed by today's date MMDD).
+                                    3. Total Amount.
+                                    4. Tax Amount (if explicitly listed separate from line items).
+                                    5. Line Items: For each, give a short Description (max 20 chars), Amount, and best guess 7-digit Account Number from this list: ${JSON.stringify(CHART_OF_ACCOUNTS.map(c=>c.number +":"+c.name))}` 
+                            },
+                            { inline_data: { mime_type: "application/pdf", data: base64PDF } }
+                        ]
+                    }],
+                    tools: [{ // Function calling specifically for IMOS structure
+                        function_declarations: [{
+                            name: "submit_imos_data",
+                            description: "Submit extracted invoice data",
+                            parameters: {
+                                type: "OBJECT",
+                                properties: {
+                                    vendor_name_on_invoice: { type: "STRING" },
+                                    invoice_number: { type: "STRING" },
+                                    total_amount: { type: "NUMBER" },
+                                    tax_amount: { type: "NUMBER" },
+                                    line_items: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                description: { type: "STRING" },
+                                                amount: { type: "NUMBER" },
+                                                account_code: { type: "STRING" }
+                                            }
+                                        }
+                                    }
+                                },
+                                required: ["vendor_name_on_invoice", "total_amount", "line_items"]
+                            }
+                        }]
+                    }]
+                };
+
+                // 3. Call API (using gemini-1.5-flash for speed/cost)
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                
+                // 4. Parse Response
+                const functionCall = data.candidates?.[0]?.content?.parts?.[0]?.functionCall;
+                if (functionCall && functionCall.name === 'submit_imos_data') {
+                    populateForm(functionCall.args);
+                } else {
+                    throw new Error("AI did not return structured data. Try again.");
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("AI Error: " + e.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function populateForm(data) {
+             // 1. Vendor Matching
+             const rawName = data.vendor_name_on_invoice;
+             let bestVendorId = "";
+             if (rawName) {
+                 const results = fuse.search(rawName);
+                 if (results.length > 0 && results[0].score < 0.4) {
+                      bestVendorId = results[0].item.vendorId;
+                      document.getElementById('vendor-warning').classList.add('hidden');
+                 } else {
+                      document.getElementById('vendor-warning').classList.remove('hidden');
+                 }
+             }
+             document.getElementById('vendor-select').value = bestVendorId;
+
+             // 2. Invoice Basic Data
+             document.getElementById('invoice-num').value = data.invoice_number || ("INV" + new Date().toISOString().slice(5,10).replace('-',''));
+             document.getElementById('invoice-total').value = (data.total_amount || 0).toFixed(2);
+             document.getElementById('tax-amount').value = data.tax_amount || "";
+
+             // 3. Line Items
+             document.getElementById('line-items-container').innerHTML = ''; // Clear existing
+             (data.line_items || []).forEach(item => {
+                 addLineItem(item.description, item.account_code, item.amount);
+             });
+             if (document.getElementById('line-items-container').children.length === 0) {
+                 addLineItem(); // Ensure at least one
+             }
+
+             updateLink(); // Auto-update the link
+        }
+
+        // --- UI HELPERS ---
+        function addLineItem(desc="", acct="", val="") {
+            const tmpl = document.getElementById('line-item-template');
+            const clone = tmpl.content.cloneNode(true);
+            clone.querySelector('.li-desc').value = desc.toUpperCase().substring(0,25);
+            clone.querySelector('.li-val').value = val;
+            const acctSelect = clone.querySelector('.li-acct');
+            populateCoaSelect(acctSelect);
+            acctSelect.value = acct ? acct.replace(/\s/g, '') : ""; // Remove spaces for matching value
+
+            // Add change listeners to update link automatically
+            clone.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('change', updateLink);
+            });
+
+            document.getElementById('line-items-container').appendChild(clone);
+        }
+
+        function setLoading(isLoading) {
+            document.getElementById('process-btn').classList.toggle('hidden', isLoading);
+            document.getElementById('loading-indicator').classList.toggle('hidden', !isLoading);
+        }
+
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); }
+            return window.btoa(binary);
+        }
+
+        // --- DEEP LINK GENERATION ---
+        function updateLink() {
+            const vendorId = document.getElementById('vendor-select').value;
+            const invStr = document.getElementById('invoice-num').value;
+            const taxVal = document.getElementById('tax-amount').value;
+            
+            if (!vendorId) {
+                document.getElementById('imos-link-btn').classList.add('disabled');
+                return;
+            }
+
+            let url = `https://imos.churchofjesuschrist.org/payments/#!/one-time-payment/create-new?type=vendor&id=${vendorId}&inv=${encodeURIComponent(invStr)}`;
+
+            // Loop through line items
+            const lines = document.querySelectorAll('.line-item-row');
+            lines.forEach((row, index) => {
+                const suffix = index === 0 ? "" : `_${index + 1}`; // li, li_2, li_3...
+                const desc = row.querySelector('.li-desc').value;
+                const acct = row.querySelector('.li-acct').value;
+                const val = row.querySelector('.li-val').value;
+
+                if (val) { // Only add if it has a value
+                     url += `&li${suffix}=${encodeURIComponent(desc)}&acct${suffix}=${acct}&val${suffix}=${val}`;
+                }
+            });
+
+            if (taxVal && parseFloat(taxVal) > 0) {
+                url += `&tax=${taxVal}`;
+            }
+
+            document.getElementById('imos-link-btn').href = url;
+            document.getElementById('imos-link-btn').classList.remove('disabled');
+        }
+        
+        // Add listeners to main form inputs to update link too
+        document.getElementById('vendor-select').addEventListener('change', updateLink);
+        document.getElementById('invoice-num').addEventListener('change', updateLink);
+        document.getElementById('tax-amount').addEventListener('change', updateLink);
+
+        function validateForm(e) {
+            if (document.getElementById('imos-link-btn').classList.contains('disabled')) {
+                e.preventDefault();
+                alert("Please select a vendor first.");
+                return false;
+            }
+            return true;
+        }
+
+    </script>
+</body>
+</html>
