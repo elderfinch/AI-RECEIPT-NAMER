@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Receipt Sorter</title>
+    <title>Quick Receipt Sorter</title>
     
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>     
@@ -28,21 +28,28 @@
         }
 
         /* --- Column Width Adjustments --- */
-        .table-col-verified { width: 5%; } /* NEW */
+        .table-col-verified { width: 5%; }
         .table-col-amount { width: 10%; }
         .table-col-currency { width: 8%; }
-        .table-col-merchant { width: 20%; } /* Adjusted */
-        .table-col-category { width: 20%; } /* Adjusted */
-        .table-col-coa { width: 32%; } /* Adjusted */
+        .table-col-merchant { width: 20%; }
+        .table-col-category { width: 20%; }
+        .table-col-coa { width: 32%; }
         .table-col-preview { width: 5%; }
     </style>
 </head>
 <body class="bg-base-200">
     <div class="navbar bg-base-100 shadow-lg mb-4">
         <div class="flex-1">
-            <span class="text-xl font-semibold">AI Receipt Sorter</span>
+            <span class="text-xl font-semibold">Quick Receipt Sorter</span>
         </div>
-        <div class="flex-none">
+        <div class="flex-none gap-2">
+            <button id="clear-pdfs-button" class="btn btn-ghost text-error btn-sm" title="Clear PDFs & Results (Keep Settings)">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                </svg>
+                Clear PDFs
+            </button>
+            
             <button id="settings-button" class="btn btn-ghost">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.432l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.432l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.432l1.297-2.247a1.125 1.125 0 0 1 1.37-.49l1.216.455c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
@@ -106,7 +113,7 @@
                     </div>
 
                     <div class="mt-6">
-                        <button class="btn btn-warning" id="clear-data-btn">Clear saved data</button>
+                        <button class="btn btn-warning" id="clear-data-btn">Reset Everything (Including Settings)</button>
                     </div>
                 </div>
 
@@ -155,7 +162,7 @@
         <div class="hero min-h-24 bg-primary text-primary-content">
             <div class="hero-content text-center">
                 <div class="max-w-md">
-                    <h1 class="text-4xl font-bold">🤖 AI Receipt Sorter</h1>
+                    <h1 class="text-4xl font-bold">🤖 Quick Receipt Sorter</h1>
                     <p class="py-6"> Quickly automate your card recons using artificial intelligence</p>
                 </div>
             </div>
@@ -166,17 +173,26 @@
                 <div class="card-body">
                     <div class="flex flex-col md:flex-row gap-4 items-center">
                         <div class="w-full">
-                            <label class="label"><span class="label-text">Single PDF</span></label>
+                            <label class="label"><span class="label-text">Single PDF (w/ 1 receipt per page)</span></label>
                             <input type="file" id="file-input" class="file-input file-input-bordered file-input-primary w-full" accept=".pdf" />
                         </div>
                         <div class="w-full">
-                            <label class="label"><span class="label-text">Batch ZIP (optional)</span></label>
+                            <label class="label"><span class="label-text">Batch ZIP (w/ 1 receipt per pdf)</span></label>
                             <input type="file" id="zip-input" class="file-input file-input-bordered w-full" accept=".zip" />
                         </div>
-                        <button class="btn btn-primary btn-lg" id="process-button" disabled>
-                            <span id="btn-text">Start Processing</span>
-                            <span id="btn-loader" class="loading loading-spinner hidden"></span>
-                        </button>
+                        
+                        <div class="w-full md:w-auto flex flex-col gap-2">
+                            <div class="form-control">
+                                <label class="label cursor-pointer gap-2">
+                                    <span class="label-text font-semibold">AI Mode</span> 
+                                    <input type="checkbox" class="toggle toggle-primary" id="ai-mode-toggle" />
+                                </label>
+                            </div>
+                            <button class="btn btn-primary btn-md p-10" id="process-button" disabled>
+                                <span id="btn-text text-md">Start Processing</span>
+                                <span id="btn-loader" class="loading loading-spinner hidden"></span>
+                            </button>
+                        </div>
                     </div>
 
                     <div id="status-container" class="hidden mt-4">
@@ -360,6 +376,8 @@
         const tableBody = document.getElementById('results-table-body');
         // const pdfPreview = document.getElementById('pdf-preview'); // --- REMOVED ---
         const downloadZipButton = document.getElementById('download-zip-button');
+        const aiModeToggle = document.getElementById('ai-mode-toggle'); 
+        const clearPdfsButton = document.getElementById('clear-pdfs-button');
 
         // --- 5. SETTINGS HANDLING ---
         // Persisted values: gemini_api_key, gemini_prompt, gemini_theme, gemini_currencies, receipts_pages, receipts_results
@@ -368,27 +386,18 @@
                 const key = await idbGet('gemini_api_key') || localStorage.getItem('gemini_api_key');
                 if (key) {
                     currentApiKey = key;
-                    // Ensure settings modal is closed and main UI visible
-                    try { settingsModal.close(); } catch (e) {}
-                    mainContent.classList.remove('hidden');
+                    // Initialize toggle based on key presence
+                    aiModeToggle.checked = true;
                 } else {
-                    // Show settings modal so user can enter API key / prompt
-                    settingsModal.showModal();
+                    aiModeToggle.checked = false;
                 }
+                // Always show content, don't block user if they want to use Manual Mode
+                mainContent.classList.remove('hidden');
             } catch (e) {
-                console.warn('IDB read error in checkApiKey, falling back to localStorage', e);
-                const key = localStorage.getItem('gemini_api_key');
-                if (key) {
-                    currentApiKey = key;
-                    try { settingsModal.close(); } catch (e) {}
-                    mainContent.classList.remove('hidden');
-                } else {
-                    settingsModal.showModal();
-                }
+                console.warn('IDB read error in checkApiKey', e);
+                mainContent.classList.remove('hidden');
             }
         }
-
-        // *** REMOVED saveSettings() function, as saving is now automatic ***
 
         // Currency helpers (simple add/remove stored in localStorage)
         async function getCurrencies() {
@@ -435,7 +444,6 @@
             }
         }
         
-        // --- NEW: Helper to store currencies (which might be JSON)
         async function setCurrencies(currenciesArray) {
              try { 
                 await idbSet('gemini_currencies', currenciesArray); 
@@ -524,10 +532,45 @@
             return bytes.buffer;
         }
 
+        // --- NEW: Clear PDFs Logic ---
+        clearPdfsButton.addEventListener('click', async () => {
+            if(!confirm('Clear all loaded PDFs and table data? Your API key and settings will NOT be deleted.')) return;
+            
+            // Clear storage specific to receipts
+            try {
+                await idbDelete('receipts_pages');
+                await idbDelete('receipts_results');
+            } catch(e) { console.error(e); }
+            
+            localStorage.removeItem('receipts_pages');
+            localStorage.removeItem('receipts_results');
+
+            // Reset Memory
+            allPageBytes = [];
+            processedResultsGlobal = [];
+            
+            // Reset UI
+            tableBody.innerHTML = '';
+            resultsSection.classList.add('hidden');
+            statusContainer.classList.add('hidden');
+            if(fileInput) fileInput.value = '';
+            if(zipInput) zipInput.value = '';
+            processButton.disabled = true;
+        });
+        
+        // --- NEW: Toggle Logic Logic ---
+        aiModeToggle.addEventListener('change', function() {
+            if (this.checked && !currentApiKey) {
+                alert("To use AI Mode, you must first enter a valid Gemini API Key in Settings.");
+                settingsModal.showModal();
+                this.checked = false; // Reset toggle back to off
+            }
+        });
+
         processButton.addEventListener('click', async () => {
-            // Support either a single PDF (split pages) or a ZIP containing PDFs
             const pdfFile = fileInput.files[0];
             const zipFile = document.getElementById('zip-input') ? document.getElementById('zip-input').files[0] : null;
+            const useAI = aiModeToggle.checked;
 
             if (!pdfFile && !zipFile) return;
 
@@ -580,7 +623,7 @@
                     }
                 }
 
-                // Persist pages to IndexedDB (store array of base64 strings)
+                // Persist pages to IndexedDB
                 try {
                     await idbSet('receipts_pages', pdfBase64Batch.map(p => p.base64Data));
                 } catch (e) {
@@ -588,10 +631,28 @@
                     try { localStorage.setItem('receipts_pages', JSON.stringify(pdfBase64Batch.map(p => p.base64Data))); } catch (er) { console.warn('Could not persist pages to localStorage either', er); }
                 }
 
-                // Step: Call AI to analyze batch
-                statusText.textContent = `Analyzing ${pdfBase64Batch.length} receipts with AI...`;
-                const promptPayload = await buildLLMBatchPayload(pdfBase64Batch); // Now async
-                const processedResults = await callAIFallback(promptPayload);
+                let processedResults = [];
+
+                if (!useAI) {
+                    // --- Manual Mode Logic ---
+                    statusText.textContent = "Manual Mode: Skipping AI processing...";
+                    // Generate blank results
+                    processedResults = pdfBase64Batch.map((item) => ({
+                        id: item.id,
+                        vendor: "",
+                        total: "",
+                        currency: "MZN", // default
+                        category: "",
+                        account_number: "",
+                        verified: false
+                    }));
+                } else {
+                    // --- Existing AI Logic ---
+                    // Step: Call AI to analyze batch
+                    statusText.textContent = `Analyzing ${pdfBase64Batch.length} receipts with AI...`;
+                    const promptPayload = await buildLLMBatchPayload(pdfBase64Batch); // Now async
+                    processedResults = await callAIFallback(promptPayload);
+                }
 
                 // Persist results
                 try { await idbSet('receipts_results', processedResults); } catch (e) { console.warn('Could not persist results to IDB, falling back to localStorage:', e); try { localStorage.setItem('receipts_results', JSON.stringify(processedResults)); } catch (er) { console.warn('Could not persist results to localStorage either', er); } }
@@ -624,13 +685,6 @@
         }
 
         // --- 7. AI & PROMPT LOGIC ---
-        
-        /**
-         * Builds the *entire* request payload, including the prompt,
-         * all the inline PDF data, and the new Function Calling "tools".
-         * NOW ASYNC to read custom prompt from storage.
-         */
-
          const DEFAULT_PROMPT_TEMPLATE = `
             You are an expert financial analyst. I will provide a series of one-page PDF receipts.
             For each receipt, analyze its layout, text, and images to extract the key information.
@@ -651,8 +705,6 @@
             `;
         async function buildLLMBatchPayload(pdfBatch) {
             
-            // Define the "tool" (our function) for the AI to call.
-            // This schema forces the AI's output into the exact JSON structure we want.
             const tools = [
                 {
                     functionDeclarations: [
@@ -704,18 +756,15 @@
                 }
             ];
 
-            // Build the COA list for the prompt
             const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `- ${a.number}: ${a.name}`).join("\n");
             const categoriesText = PREFERRED_CATEGORIES.join("\n");
             
-            // --- NEW: Load custom prompt from storage ---
             let customPrompt = "";
             try {
                 customPrompt = await idbGet('gemini_prompt') || localStorage.getItem('gemini_prompt') || "";
             } catch (e) { console.warn("Could not load custom prompt", e); }
             
             
-            // This is the main prompt instructing the AI
             const defaultPrompt = `
 You are an expert financial analyst. I will provide a series of one-page PDF receipts.
 For each receipt, analyze its layout, text, and images to extract the key information.
@@ -734,20 +783,16 @@ After analyzing all the receipts, call the \`submit_receipt_data\` function with
 
 Now, please process the following receipts:
 `;
-            // Use custom prompt if provided, otherwise use default
-// Use custom prompt if provided, otherwise use default
-            const mainPrompt = customPrompt.trim() ? customPrompt : DEFAULT_PROMPT_TEMPLATE; //            
-            // Start building the `contents` array
+            const mainPrompt = customPrompt.trim() ? customPrompt : DEFAULT_PROMPT_TEMPLATE; 
             const contents = [
                 { parts: [{ text: mainPrompt }] }
             ];
 
-            // Add each PDF page as a new part in the `contents` array
             pdfBatch.forEach(receipt => {
                 contents.push(
-                    { parts: [{ text: `Receipt ID: ${receipt.id}` }] }, // A text part giving the ID
+                    { parts: [{ text: `Receipt ID: ${receipt.id}` }] }, 
                     { 
-                        parts: [{ // A part containing the PDF data
+                        parts: [{ 
                             inlineData: {
                                 mimeType: 'application/pdf',
                                 data: receipt.base64Data
@@ -757,26 +802,18 @@ Now, please process the following receipts:
                 );
             });
             
-            // Add a final instruction
             contents.push(
                 { parts: [{ text: "Processing complete. Please call the `submit_receipt_data` function now." }] }
             );
 
-            // Return the complete payload, including contents and tools
             return { 
                 contents: contents,
                 tools: tools 
             };
         }
 
-        /**
-         * AI FALLBACK FUNCTION
-         * Tries a list of models in order until one succeeds.
-         * Now includes all Flash models and parses the Function Call response.
-         */
         async function callAIFallback(payload) {
             
-            // Expanded fallback list
             const models = [
                 "gemini-2.5-flash",
                 "gemini-2.5-pro",
@@ -799,12 +836,11 @@ Now, please process the following receipts:
                         const errorBody = await response.json();
                         console.warn(`Model ${model} failed: ${errorBody.error.message}`);
                     } else {
-                        // SUCCESS! Now parse the function call
                         const data = await response.json();
                         
                         if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
                              console.warn(`Model ${model} returned an invalid response structure (no parts):`, data);
-                             continue; // Try next model
+                             continue; 
                         }
                         
                         const part = data.candidates[0].content.parts[0];
@@ -814,7 +850,6 @@ Now, please process the following receipts:
                             throw new Error("AI did not return a function call. Check console.");
                         }
 
-                        // 'receipts' is the argument name from our schema
                         const results = part.functionCall.args.receipts; 
 
                         if (!Array.isArray(results)) {
@@ -823,7 +858,7 @@ Now, please process the following receipts:
                         }
                         
                         console.log(`Successfully got response from ${model}`);
-                        return results; // Return the successful array of receipts
+                        return results; 
                     }
 
                 } catch (err) {
@@ -831,16 +866,12 @@ Now, please process the following receipts:
                 }
             }
             
-            // If the loop finishes without returning, all models have failed.
             throw new Error("All AI models failed. Please check your API key and network connection, or try again later.");
         }
 
 
         // --- 8. UI & TABLE LOGIC ---
 
-        /**
-         * --- NEW: Helper function to build the grouped COA dropdown HTML ---
-         */
         function buildCoaDropdownHtml(selectedAccountNumber) {
             const groupedAccounts = {
                 "000 - Admin": [],
@@ -851,7 +882,6 @@ Now, please process the following receipts:
                 "6XXX - Area": []
             };
 
-            // Group the accounts
             CHART_OF_ACCOUNTS_MAP.forEach(acct => {
                 if (acct.number.startsWith("000")) {
                     groupedAccounts["000 - Admin"].push(acct);
@@ -871,7 +901,6 @@ Now, please process the following receipts:
             let html = `<select class="select select-bordered select-sm w-full select-coa">
                             <option value="">-- Select --</option>`;
             
-            // Build <optgroup> html
             for (const groupName in groupedAccounts) {
                 const accounts = groupedAccounts[groupName];
                 if (accounts.length > 0) {
@@ -892,13 +921,12 @@ Now, please process the following receipts:
         async function renderTable(results) {
             tableBody.innerHTML = ''; // Clear old results
 
-            // store global copy for later updates
             processedResultsGlobal = Array.isArray(results) ? results.slice() : [];
 
             const resultMap = new Map();
             if (Array.isArray(results)) {
                 for (const result of results) {
-                    resultMap.set(String(result.id), result); // Use string ID for safety
+                    resultMap.set(String(result.id), result); 
                 }
             } else {
                 console.error("Render error: AI results were not an array.", results);
@@ -911,17 +939,16 @@ Now, please process the following receipts:
                 const result = resultMap.get(String(index)) || {};
 
                 const tr = document.createElement('tr');
-                tr.setAttribute('data-index', index); // Link row to its PDF bytes
+                tr.setAttribute('data-index', index); 
                 tr.className = 'hover';
 
-                // Amount
+                // --- FIX: Default amount is now blank, not '0.00' ---
                 tr.innerHTML += `
                     <td>
-                        <input class="input input-bordered input-sm w-full input-amount" type="text" value="${result.total || '0.00'}">
+                        <input class="input input-bordered input-sm w-full input-amount" type="text" value="${result.total || ''}" placeholder="">
                     </td>
                 `;
 
-                // Currency Dropdown
                 let currencyOptions = currencies.map(c => 
                     `<option value="${c}" ${c === (result.currency || currencies[0]) ? 'selected' : ''}>${c}</option>`
                 ).join('');
@@ -933,34 +960,27 @@ Now, please process the following receipts:
                     </td>
                 `;
 
-                // Merchant
                 tr.innerHTML += `
                     <td>
-                        <input class="input input-bordered input-sm w-full input-vendor uppercase" type="text" value="${result.vendor || 'UNKNOWN'}">
+                        <input class="input input-bordered input-sm w-full input-vendor uppercase" type="text" value="${result.vendor || ''}" placeholder="VENDOR">
                     </td>
                 `;
 
-                // Line Item
                 tr.innerHTML += `
                     <td>
-                        <input class="input input-bordered input-sm w-full input-category uppercase" type="text" value="${result.category || 'GENERAL EXPENSE'}">
+                        <input class="input input-bordered input-sm w-full input-category uppercase" type="text" value="${result.category || ''}" placeholder="ITEM">
                     </td>
                 `;
 
-                // Chart of Accounts Dropdown
                 const coaDropdownHtml = buildCoaDropdownHtml(result.account_number);
                 tr.innerHTML += `<td>${coaDropdownHtml}</td>`;
 
-                
-
-                // Verified Checkbox
                 tr.innerHTML += `
                     <td class="text-center">
                         <input type="checkbox" class="checkbox verify-checkbox" ${result.verified ? 'checked' : ''} data-index="${index}">
                     </td>
                 `;
                 
-                // Preview Button
                 tr.innerHTML += `
                     <td>
                         <button class="btn btn-sm btn-info btn-outline preview-button" data-index="${index}">
@@ -972,19 +992,17 @@ Now, please process the following receipts:
                 tableBody.appendChild(tr);
             }
 
-            // --- FIX: ADD EVENT LISTENERS FOR ALL EDITABLE FIELDS ---
             document.querySelectorAll(
                 '#results-table-body .input-amount, ' +
                 '#results-table-body .select-currency, ' +
                 '#results-table-body .input-vendor, ' +
                 '#results-table-body .input-category, ' +
                 '#results-table-body .select-coa, ' +
-                '#results-table-body .verify-checkbox' // <-- ADD THIS
+                '#results-table-body .verify-checkbox' 
             ).forEach(input => {
-                input.addEventListener('change', handleTableUpdate); // 'change' fires on blur or selection
+                input.addEventListener('change', handleTableUpdate); 
             });
 
-            // Add event listeners to preview buttons (kept from before)
             document.querySelectorAll('.preview-button').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const index = e.currentTarget.getAttribute('data-index');
@@ -993,20 +1011,17 @@ Now, please process the following receipts:
             });
         }
 
-            // Clear all saved data (IDB + localStorage) and reset UI
             async function clearSavedData() {
-                if (!confirm('Clear all saved receipts and settings? This cannot be undone.')) return;
+                if (!confirm('Factory Reset: Clear ALL settings, keys, and receipts? This cannot be undone.')) return;
                 try {
                     await idbClear();
                 } catch (e) { console.warn('IDB clear failed', e); }
-                // remove known localStorage keys as well
                 ['gemini_api_key','gemini_prompt','gemini_theme','gemini_currencies','receipts_pages','receipts_results'].forEach(k => localStorage.removeItem(k));
-                // Reset in-memory state
                 allPageBytes = [];
                 processedResultsGlobal = [];
                 tableBody.innerHTML = '';
                 resultsSection.classList.add('hidden');
-                alert('Saved data cleared. The page will reload to apply changes.');
+                alert('App reset. Reloading...');
                 location.reload();
             }
 
@@ -1025,13 +1040,12 @@ Now, please process the following receipts:
 
             function handleTableUpdate(e) {
                 const input = e.currentTarget;
-                const row = input.closest('tr'); // Find the <tr> parent
+                const row = input.closest('tr'); 
                 if (!row) return;
 
                 const index = row.getAttribute('data-index');
-                if (processedResultsGlobal[index] === undefined) return; // Safety check
+                if (processedResultsGlobal[index] === undefined) return; 
 
-                // Map class names to the property names in our data object
                 const propertyMap = {
                     'input-amount': 'total',
                     'select-currency': 'currency',
@@ -1042,7 +1056,6 @@ Now, please process the following receipts:
                 };
                 
                 let propertyToUpdate = null;
-                // Find which property to update based on the input's class
                 for (const className in propertyMap) {
                     if (input.classList.contains(className)) {
                         propertyToUpdate = propertyMap[className];
@@ -1053,42 +1066,33 @@ Now, please process the following receipts:
                 if (propertyToUpdate) {
                     let value = input.value;
                     
-                    // --- Data sanitation ---
                     if (propertyToUpdate === 'total') {
-                        value = parseFloat(value) || 0.00; // Convert to number
+                        value = parseFloat(value) || 0.00; 
                     } else if (propertyToUpdate === 'vendor' || propertyToUpdate === 'category') {
-                        value = value.toUpperCase(); // Ensure uppercase
-                        input.value = value; // Force the input to show uppercase too
+                        value = value.toUpperCase(); 
+                        input.value = value; 
                     }
-                    else if (propertyToUpdate === 'verified') { // <-- ADD THIS BLOCK
-                        value = input.checked; // Get boolean value
+                    else if (propertyToUpdate === 'verified') { 
+                        value = input.checked; 
                     }
                     
-                    // Update the global array
                     processedResultsGlobal[index][propertyToUpdate] = value;
                     
-                    // Save the entire updated array to storage
                     saveResultsToStorage();
                 }
             }
 
-        /**
-         * --- MODIFIED: Opens PDF in a named, reusable window ---
-         */
         function showPreview(index) {
             try {
                 const pdfBytes = allPageBytes[index];
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 
-                // Open the PDF in a named window. 
-                // This will reuse the same window/tab if it's already open.
                 previewWindow = window.open(url, "receiptPreviewWindow");
                 if (previewWindow) {
-                    previewWindow.focus(); // Bring the window to the front
+                    previewWindow.focus(); 
                 }
 
-                // Subtle outline the selected row (don't change text color)
                 document.querySelectorAll('#results-table-body tr').forEach(tr => {
                     tr.classList.remove('ring-2', 'ring-primary');
                 });
@@ -1100,7 +1104,6 @@ Now, please process the following receipts:
             }
         }
         
-        // Add metadata to a PDF using pdf-lib and return new bytes
         async function addMetadataToPDF(pdfBytes, metadata) {
             try {
                 const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -1111,7 +1114,7 @@ Now, please process the following receipts:
                 return await pdfDoc.save();
             } catch (e) {
                 console.warn('Could not add metadata:', e);
-                return pdfBytes; // fallback to original
+                return pdfBytes; 
             }
         }
 
@@ -1120,7 +1123,7 @@ Now, please process the following receipts:
         downloadZipButton.addEventListener('click', async () => {
             statusContainer.classList.remove('hidden');
             statusText.textContent = "Generating ZIP file... please wait.";
-            progressBar.removeAttribute('value'); // Indeterminate progress
+            progressBar.removeAttribute('value'); 
 
             const zip = new JSZip();
             
@@ -1129,18 +1132,14 @@ Now, please process the following receipts:
             for (const row of rows) {
                 const index = row.getAttribute('data-index');
                 
-                // Read current values from the form fields
                 const amount = row.querySelector('.input-amount').value;
                 const currency = row.querySelector('.select-currency').value;
                 const vendor = row.querySelector('.input-vendor').value.toUpperCase();
-                // --- BUG FIX: Was '.input-Vcategory', now '.input-category' ---
                 const category = row.querySelector('.input-category').value.toUpperCase();
                 const coa = row.querySelector('.select-coa').value;
                 
-                // Build filename in requested format: "123.45 USD - VENDOR NAME - LINE ITEM.pdf"
                 const filename = `${amount} ${currency} - ${vendor} - ${category}.pdf`;
                 const rawPdfBytes = allPageBytes[index];
-                // Add accounting code to PDF metadata
                 const pdfWithMeta = await addMetadataToPDF(rawPdfBytes, {
                     title: `${amount} ${currency} - ${vendor} - ${category}`,
                     subject: category,
@@ -1149,7 +1148,6 @@ Now, please process the following receipts:
                 zip.file(filename, pdfWithMeta);
             }
 
-            // Generate and trigger download
             try {
                 const content = await zip.generateAsync({ type: "blob" });
                 const a = document.createElement('a');
@@ -1163,13 +1161,12 @@ Now, please process the following receipts:
                 console.error("ZIP Error:", err);
                 statusText.textContent = "Error generating ZIP file.";
             } finally {
-                progressBar.setAttribute('value', '0'); // Reset progress
+                progressBar.setAttribute('value', '0'); 
                 statusContainer.classList.add('hidden');
             }
         });
 
         // --- 10. INITIALIZATION ---
-        // Restore saved settings (use IndexedDB)
         (async function initFromStorage(){
             try {
                 const savedKey = await idbGet('gemini_api_key') || localStorage.getItem('gemini_api_key');
@@ -1179,7 +1176,7 @@ Now, please process the following receipts:
                     if (savedPrompt) {
                         customPromptInput.value = savedPrompt;
                     } else {
-                        customPromptInput.value = DEFAULT_PROMPT_TEMPLATE; // Set default
+                        customPromptInput.value = DEFAULT_PROMPT_TEMPLATE; 
                     }
                 }                
                 if (savedPrompt && customPromptInput) customPromptInput.value = savedPrompt;
@@ -1188,7 +1185,6 @@ Now, please process the following receipts:
                 if (themeSelect) themeSelect.value = savedTheme || document.documentElement.getAttribute('data-theme') || 'light';
                 await updateCurrencyList();
 
-                // Restore saved pages & results
                 try {
                     const pages = await idbGet('receipts_pages') || JSON.parse(localStorage.getItem('receipts_pages') || '[]');
                     if (Array.isArray(pages) && pages.length > 0) {
@@ -1206,17 +1202,14 @@ Now, please process the following receipts:
             }
         })();
 
-        // Then check API key (async)
         (async () => { await checkApiKey(); })();
 
-        // Initialize settings modal and tabs
         (function initializeSettings() {
             const settingsButton = document.getElementById('settings-button');
             const settingsModal = document.getElementById('settings-modal');
             const tabs = document.querySelectorAll('.tabs .tab');
             const tabContents = document.querySelectorAll('.tab-content');
             
-            // Theme select handler - update immediately
             themeSelect?.addEventListener('change', async (e) => {
                 const theme = e.target.value;
                 document.documentElement.setAttribute('data-theme', theme);
@@ -1227,7 +1220,6 @@ Now, please process the following receipts:
                 }
             });
 
-            // *** NEW: Auto-save listener for API Key ***
             apiKeyInput?.addEventListener('change', async (e) => {
                 const key = e.target.value.trim();
                 if (key) {
@@ -1236,9 +1228,8 @@ Now, please process the following receipts:
                     } catch (err) { 
                         localStorage.setItem('gemini_api_key', key); 
                     }
-                    currentApiKey = key; // Keep currentApiKey in sync
+                    currentApiKey = key; 
                     
-                    // If this is the first time, close modal and show content
                     if (mainContent.classList.contains('hidden')) {
                         try { settingsModal.close(); } catch (e) {}
                         mainContent.classList.remove('hidden');
@@ -1246,7 +1237,6 @@ Now, please process the following receipts:
                 }
             });
 
-            // *** NEW: Auto-save listener for Custom Prompt ***
             customPromptInput?.addEventListener('change', async (e) => {
                 const prompt = e.target.value;
                 try { 
@@ -1257,43 +1247,32 @@ Now, please process the following receipts:
             });
 
 
-            // Settings button click handler
             settingsButton?.addEventListener('click', () => {
                 settingsModal?.showModal();
             });
 
-            // Tab switching
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Remove active class from all tabs and hide all content
                     tabs.forEach(t => t.classList.remove('tab-active'));
                     
-                    // --- FIX START: Hide all tabs and remove 'block' ---
                     tabContents.forEach(content => {
                         content.classList.add('hidden');
                         content.classList.remove('block'); 
                     });
-                    // --- FIX END ---
 
-                    // Add active class to clicked tab and show corresponding content
                     tab.classList.add('tab-active');
                     const tabName = tab.getAttribute('data-tab');
                     const content = document.getElementById(`${tabName}-settings`);
                     
-                    // --- FIX START: Show the correct tab by removing 'hidden' and adding 'block' ---
                     if (content) {
                         content.classList.remove('hidden');
                         content.classList.add('block');
                     }
-                    // --- FIX END ---
                 });
             });
         })();
         
-        // Wire up buttons that previously used inline onclick attributes
         (function wireSettingsButtons(){
-            // *** REMOVED Save button listener ***
-
             const clearBtn = document.getElementById('clear-data-btn');
             if (clearBtn) clearBtn.addEventListener('click', (e) => { e.preventDefault(); clearSavedData(); });
 
