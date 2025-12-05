@@ -6,7 +6,7 @@
     <title>Quick Receipt Sorter</title>
     
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>     
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>      
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
         
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -28,12 +28,13 @@
         }
 
         /* --- Column Width Adjustments --- */
+        .table-col-warn { width: 4%; text-align: center; } /* NEW COLUMN */
         .table-col-verified { width: 5%; }
         .table-col-amount { width: 10%; }
         .table-col-currency { width: 8%; }
         .table-col-merchant { width: 20%; }
         .table-col-category { width: 20%; }
-        .table-col-coa { width: 32%; }
+        .table-col-coa { width: 28%; }
         .table-col-preview { width: 5%; }
     </style>
 </head>
@@ -210,6 +211,7 @@
                             <table class="table table-zebra table-sm w-full"> 
                                 <thead>
                                     <tr>
+                                        <th class="table-col-warn" title="Warning if name > 60 chars">!</th>
                                         <th class="table-col-amount">Amount</th>
                                         <th class="table-col-currency">Curr.</th>
                                         <th class="table-col-merchant">Merchant Name</th>
@@ -815,10 +817,11 @@ Now, please process the following receipts:
         async function callAIFallback(payload) {
             
             const models = [
-                "gemini-2.5-flash",
-                "gemini-2.5-pro",
-                "gemini-2.5-flash-preview",
-                "gemini-2.5-flash-lite", 
+                "gemini-2.0-flash",
+                "gemini-2.0-flash-lite-preview-02-05",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-2.0-pro-exp-02-05" 
             ];
 
             for (const model of models) {
@@ -940,9 +943,32 @@ Now, please process the following receipts:
 
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-index', index); 
-                tr.className = 'hover';
+                
+                // --- NEW: Calculate Length Logic ---
+                // Format: Currency amount MZN + vendor name + Line Item
+                const amtStr = String(result.total || '');
+                const vndStr = (result.vendor || '');
+                const catStr = (result.category || '');
+                
+                // Using exact formula "Currency amount MZN + vendor name + Line Item" implies:
+                // [Amount] + " MZN " + [Vendor] + " " + [Category]
+                const fullString = `${amtStr} MZN ${vndStr} ${catStr}`;
+                const isTooLong = fullString.length > 60;
 
-                // --- FIX: Default amount is now blank, not '0.00' ---
+                // Apply Red Highlight if too long
+                if(isTooLong) {
+                    tr.className = 'bg-error/20 hover:bg-error/30';
+                } else {
+                    tr.className = 'hover';
+                }
+
+                // --- NEW COLUMN: Warning Icon ---
+                tr.innerHTML += `
+                    <td class="table-col-warn text-center align-middle warn-cell text-error font-bold">
+                        ${isTooLong ? '<div class="tooltip tooltip-right" data-tip="Name > 60 chars">⚠️</div>' : ''}
+                    </td>
+                `;
+
                 tr.innerHTML += `
                     <td>
                         <input class="input input-bordered input-sm w-full input-amount" type="text" value="${result.total || ''}" placeholder="">
@@ -1000,6 +1026,11 @@ Now, please process the following receipts:
                 '#results-table-body .select-coa, ' +
                 '#results-table-body .verify-checkbox' 
             ).forEach(input => {
+                // Use 'input' event for text fields to update warning color instantly while typing
+                if(input.type === 'text') {
+                    input.addEventListener('input', handleTableUpdate);
+                }
+                // Use 'change' event for everything else and for saving to DB
                 input.addEventListener('change', handleTableUpdate); 
             });
 
@@ -1046,6 +1077,32 @@ Now, please process the following receipts:
                 const index = row.getAttribute('data-index');
                 if (processedResultsGlobal[index] === undefined) return; 
 
+                // 1. Logic to Update Warning Red/Icon Instantly
+                // Re-fetch current DOM values to verify length
+                const currentAmt = row.querySelector('.input-amount').value || '';
+                const currentVnd = row.querySelector('.input-vendor').value || '';
+                const currentCat = row.querySelector('.input-category').value || '';
+                
+                // Formula: Amount + " MZN " + Vendor + " " + Category
+                const checkString = `${currentAmt} MZN ${currentVnd} ${currentCat}`;
+                const isTooLong = checkString.length > 60;
+                
+                // Toggle Class
+                if(isTooLong) {
+                    row.classList.add('bg-error/20', 'hover:bg-error/30');
+                    row.classList.remove('hover');
+                } else {
+                    row.classList.remove('bg-error/20', 'hover:bg-error/30');
+                    row.classList.add('hover');
+                }
+
+                // Toggle Icon
+                const warnCell = row.querySelector('.warn-cell');
+                if(warnCell) {
+                    warnCell.innerHTML = isTooLong ? '<div class="tooltip tooltip-right" data-tip="Name > 60 chars">⚠️</div>' : '';
+                }
+
+                // 2. Logic to Save Data (Only on 'change' events really, but harmless here)
                 const propertyMap = {
                     'input-amount': 'total',
                     'select-currency': 'currency',
@@ -1070,15 +1127,19 @@ Now, please process the following receipts:
                         value = parseFloat(value) || 0.00; 
                     } else if (propertyToUpdate === 'vendor' || propertyToUpdate === 'category') {
                         value = value.toUpperCase(); 
-                        input.value = value; 
+                        if(e.type === 'change') input.value = value; // Force uppercase in UI on blur
                     }
                     else if (propertyToUpdate === 'verified') { 
                         value = input.checked; 
                     }
                     
+                    // Update global state
                     processedResultsGlobal[index][propertyToUpdate] = value;
                     
-                    saveResultsToStorage();
+                    // Only save to DB on 'change' (blur) to prevent spamming DB while typing
+                    if(e.type === 'change') {
+                        saveResultsToStorage();
+                    }
                 }
             }
 
