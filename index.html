@@ -1244,8 +1244,8 @@ Now, please process the following receipts:
                 const coa = row.querySelector('.select-coa').value;
                 
                 // Sanitize filename
-                const safeVendor = vendor.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
-                const safeCat = category.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+                const safeVendor = vendor.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
+                const safeCat = category.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
                 
                 const filename = `${amount} ${currency} - ${safeVendor} - ${safeCat}.pdf`;
                 
