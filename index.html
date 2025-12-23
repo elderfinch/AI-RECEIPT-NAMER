@@ -28,14 +28,15 @@
         }
 
         /* --- Column Width Adjustments --- */
-        .table-col-warn { width: 4%; text-align: center; } /* NEW COLUMN */
-        .table-col-verified { width: 5%; }
+        .table-col-warn { width: 3%; text-align: center; }
+        .table-col-verified { width: 4%; }
         .table-col-amount { width: 10%; }
-        .table-col-currency { width: 8%; }
+        .table-col-currency { width: 7%; }
         .table-col-merchant { width: 20%; }
-        .table-col-category { width: 20%; }
-        .table-col-coa { width: 28%; }
+        .table-col-category { width: 18%; }
+        .table-col-coa { width: 25%; }
         .table-col-preview { width: 5%; }
+        .table-col-delete { width: 4%; text-align: center; } /* NEW COLUMN */
     </style>
 </head>
 <body class="bg-base-200">
@@ -219,6 +220,7 @@
                                         <th class="table-col-coa">Chart of Accounts</th>
                                         <th class="table-col-verified">Verified</th>
                                         <th class="table-col-preview">View</th>
+                                        <th class="table-col-delete"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="results-table-body">
@@ -626,12 +628,7 @@
                 }
 
                 // Persist pages to IndexedDB
-                try {
-                    await idbSet('receipts_pages', pdfBase64Batch.map(p => p.base64Data));
-                } catch (e) {
-                    console.warn('Could not persist pages to IDB, falling back to localStorage:', e);
-                    try { localStorage.setItem('receipts_pages', JSON.stringify(pdfBase64Batch.map(p => p.base64Data))); } catch (er) { console.warn('Could not persist pages to localStorage either', er); }
-                }
+                await savePagesToStorage();
 
                 let processedResults = [];
 
@@ -674,6 +671,16 @@
             }
         });
         
+        async function savePagesToStorage() {
+             try {
+                // Convert array buffers to base64 for storage
+                const base64Pages = allPageBytes.map(bytes => bytesToBase64(new Uint8Array(bytes)));
+                await idbSet('receipts_pages', base64Pages);
+            } catch (e) {
+                console.warn('Could not persist pages to IDB', e);
+            }
+        }
+
         function setLoading(isLoading) {
             if (isLoading) {
                 processButton.disabled = true;
@@ -687,7 +694,7 @@
         }
 
         // --- 7. AI & PROMPT LOGIC ---
-         const DEFAULT_PROMPT_TEMPLATE = `
+          const DEFAULT_PROMPT_TEMPLATE = `
             You are an expert financial analyst. I will provide a series of one-page PDF receipts.
             For each receipt, analyze its layout, text, and images to extract the key information.
 
@@ -817,13 +824,10 @@ Now, please process the following receipts:
         async function callAIFallback(payload) {
             
             const models = [
-                "gemini-3-pro-preview",
-                "gemini-2.5-pro",
-                "gemini-2.5-flash",
-                "gemini-2.5-flash-lite",
                 "gemini-2.0-flash",
                 "gemini-2.0-flash-lite-preview-02-05",
                 "gemini-1.5-flash",
+                "gemini-1.5-pro",
             ];
 
             for (const model of models) {
@@ -928,21 +932,14 @@ Now, please process the following receipts:
 
             processedResultsGlobal = Array.isArray(results) ? results.slice() : [];
 
-            const resultMap = new Map();
-            if (Array.isArray(results)) {
-                for (const result of results) {
-                    resultMap.set(String(result.id), result); 
-                }
-            } else {
-                console.error("Render error: AI results were not an array.", results);
-            }
-
+            // We iterate based on the global results array order
+            // Since we sync processedResultsGlobal and allPageBytes on delete, the index 'i' matches both.
+            
             const currenciesArr = await getCurrencies();
             const currencies = (Array.isArray(currenciesArr) ? currenciesArr.map(c => c.code) : ['MZN','USD','ZAR']);
 
-            for (let index = 0; index < allPageBytes.length; index++) {
-                const result = resultMap.get(String(index)) || {};
-
+            processedResultsGlobal.forEach((result, index) => {
+                
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-index', index); 
                 
@@ -1017,9 +1014,21 @@ Now, please process the following receipts:
                     </td>
                 `;
 
-                tableBody.appendChild(tr);
-            }
+                // --- NEW COLUMN: Delete Button ---
+                tr.innerHTML += `
+                    <td class="text-center">
+                        <button class="btn btn-ghost btn-xs text-error delete-row-btn" data-index="${index}" title="Delete Receipt">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
 
+                tableBody.appendChild(tr);
+            });
+
+            // --- Add Listeners to New Inputs ---
             document.querySelectorAll(
                 '#results-table-body .input-amount, ' +
                 '#results-table-body .select-currency, ' +
@@ -1042,7 +1051,40 @@ Now, please process the following receipts:
                     showPreview(index);
                 });
             });
+
+            // --- New Delete Listener ---
+            document.querySelectorAll('.delete-row-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    // find closest button if click target was svg path
+                    const btn = e.target.closest('button');
+                    const index = parseInt(btn.getAttribute('data-index'));
+                    deleteReceipt(index);
+                });
+            });
         }
+        
+            async function deleteReceipt(index) {
+                if(!confirm("Are you sure you want to delete this receipt? This cannot be undone.")) return;
+
+                // 1. Remove from Data Arrays
+                // We use splice to remove the element at the specific index.
+                // This shifts all subsequent elements down by 1.
+                allPageBytes.splice(index, 1);
+                processedResultsGlobal.splice(index, 1);
+
+                // 2. Re-assign IDs in results to match new array positions
+                // This ensures the ID matches the index for future rendering/logic
+                processedResultsGlobal.forEach((res, i) => res.id = String(i));
+
+                // 3. Save Updated Data
+                await saveResultsToStorage();
+                await savePagesToStorage();
+
+                // 4. Re-render Table
+                // This is cleaner than removing the row DOM element because it resets 
+                // all data-index attributes on every row to match the new array state.
+                await renderTable(processedResultsGlobal);
+            }
 
             async function clearSavedData() {
                 if (!confirm('Factory Reset: Clear ALL settings, keys, and receipts? This cannot be undone.')) return;
@@ -1193,7 +1235,7 @@ Now, please process the following receipts:
             const rows = document.querySelectorAll('#results-table-body tr');
             
             for (const row of rows) {
-                const index = row.getAttribute('data-index');
+                const index = parseInt(row.getAttribute('data-index'));
                 
                 const amount = row.querySelector('.input-amount').value;
                 const currency = row.querySelector('.select-currency').value;
@@ -1201,8 +1243,17 @@ Now, please process the following receipts:
                 const category = row.querySelector('.input-category').value.toUpperCase();
                 const coa = row.querySelector('.select-coa').value;
                 
-                const filename = `${amount} ${currency} - ${vendor} - ${category}.pdf`;
+                // Sanitize filename
+                const safeVendor = vendor.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+                const safeCat = category.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
+                
+                const filename = `${amount} ${currency} - ${safeVendor} - ${safeCat}.pdf`;
+                
+                // Get correct byte data based on index
+                if(index >= allPageBytes.length) continue; 
+                
                 const rawPdfBytes = allPageBytes[index];
+                
                 const pdfWithMeta = await addMetadataToPDF(rawPdfBytes, {
                     title: `${amount} ${currency} - ${vendor} - ${category}`,
                     subject: category,
