@@ -952,7 +952,7 @@ Now, please process the following receipts:
                 // Using exact formula "Currency amount MZN + vendor name + Line Item" implies:
                 // [Amount] + " MZN " + [Vendor] + " " + [Category]
                 const fullString = `${amtStr} MZN - ${vndStr} - ${catStr}`;
-                const isTooLong = fullString.length > 60;
+                const isTooLong = fullString.length > 57;
 
                 // Apply Red Highlight if too long
                 if(isTooLong) {
