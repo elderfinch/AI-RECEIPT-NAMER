@@ -28,6 +28,7 @@
         }
 
         /* --- Column Width Adjustments --- */
+        .table-col-num { width: 3%; text-align: center; font-weight: 600; color: hsl(var(--bc)/0.4); }
         .table-col-warn { width: 3%; text-align: center; }
         .table-col-verified { width: 4%; }
         .table-col-amount { width: 10%; }
@@ -42,14 +43,14 @@
 <body class="bg-base-200">
     <div class="navbar bg-base-100 shadow-lg mb-4">
         <div class="flex-1">
-            <span class="text-xl font-semibold">Quick Receipt Sorter</span>
+            <span class="text-xl font-semibold" data-i18n="appName">Quick Receipt Sorter</span>
         </div>
         <div class="flex-none gap-2">
-            <button id="clear-pdfs-button" class="btn btn-ghost text-error btn-sm" title="Clear PDFs & Results (Keep Settings)">
+            <button id="clear-pdfs-button" class="btn btn-ghost text-error btn-sm" data-i18n-title="clearPdfsTitle">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                 </svg>
-                Clear PDFs
+                <span data-i18n="clearPdfs">Clear PDFs</span>
             </button>
             
             <button id="settings-button" class="btn btn-ghost">
@@ -68,17 +69,37 @@
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 
-                <h3 class="font-bold text-lg mb-4">Settings</h3>
+                <h3 class="font-bold text-lg mb-4" data-i18n="settingsTitle">Settings</h3>
                 
                 <div class="tabs tabs-boxed mb-4">
-                    <a class="tab tab-active" data-tab="general">General</a>
-                    <a class="tab" data-tab="currencies">Currencies</a>
+                    <a class="tab tab-active" data-tab="general" data-i18n="tabGeneral">General</a>
+                    <a class="tab" data-tab="currencies" data-i18n="tabCurrencies">Currencies</a>
                 </div>
 
                 <div class="tab-content block" id="general-settings">
                     <div class="form-control w-full mt-4">
                         <label class="label">
-                            <span class="label-text">Theme</span>
+                            <span class="label-text" data-i18n="displayLanguage">Display Language</span>
+                        </label>
+                        <select id="display-lang-select" class="select select-bordered w-full">
+                            <option value="en">English</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control w-full mt-4">
+                        <label class="label">
+                            <span class="label-text" data-i18n="receiptLanguage">Receipt Description Language</span>
+                        </label>
+                        <select id="receipt-lang-select" class="select select-bordered w-full">
+                            <option value="en">English</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control w-full mt-4">
+                        <label class="label">
+                            <span class="label-text" data-i18n="theme">Theme</span>
                         </label>
                         <select id="theme-select" class="select select-bordered w-full">
                             <option value="light">Light</option>
@@ -105,28 +126,30 @@
                     </div>
 
                     <div class="mt-6">
-                        <button class="btn btn-warning" id="clear-data-btn">Reset Everything (Including Settings)</button>
+                        <button class="btn btn-warning" id="clear-data-btn" data-i18n="resetBtn">Reset Everything (Including Settings)</button>
                     </div>
                 </div>
 
                 <div class="tab-content" id="currencies-settings">
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text">Add Currency</span>
+                            <span class="label-text" data-i18n="addCurrency">Add Currency</span>
                         </label>
                         <div class="join">
                             <input type="text" id="new-currency-code" 
                                    class="input input-bordered join-item" 
+                                   data-i18n-placeholder="currencyCodePlaceholder"
                                    placeholder="Currency Code (e.g., USD)">
                             <input type="text" id="new-currency-symbol" 
                                    class="input input-bordered join-item" 
+                                   data-i18n-placeholder="currencySymbolPlaceholder"
                                    placeholder="Symbol (e.g., $)">
-                            <button class="btn join-item" id="add-currency-btn">Add</button>
+                            <button class="btn join-item" id="add-currency-btn" data-i18n="addBtn">Add</button>
                         </div>
                     </div>
                     <div class="mt-4">
                         <label class="label">
-                            <span class="label-text">Current Currencies</span>
+                            <span class="label-text" data-i18n="currentCurrencies">Current Currencies</span>
                         </label>
                         <div id="currency-list" class="flex flex-wrap gap-2">
                             </div>
@@ -144,8 +167,8 @@
         <div class="hero min-h-24 bg-primary text-primary-content">
             <div class="hero-content text-center">
                 <div class="max-w-md">
-                    <h1 class="text-4xl font-bold">🤖 Quick Receipt Sorter</h1>
-                    <p class="py-6"> Quickly automate your card recons using artificial intelligence</p>
+                    <h1 class="text-4xl font-bold" data-i18n="heroTitle">🤖 Quick Receipt Sorter</h1>
+                    <p class="py-6" data-i18n="heroSubtitle"> Quickly automate your card recons using artificial intelligence</p>
                 </div>
             </div>
         </div>
@@ -155,23 +178,23 @@
                 <div class="card-body">
                     <div class="flex flex-col md:flex-row gap-4 items-center">
                         <div class="w-full">
-                            <label class="label"><span class="label-text">Single PDF (w/ 1 receipt per page)</span></label>
+                            <label class="label"><span class="label-text" data-i18n="singlePdfLabel">Single PDF (w/ 1 receipt per page)</span></label>
                             <input type="file" id="file-input" class="file-input file-input-bordered file-input-primary w-full" accept=".pdf" />
                         </div>
                         <div class="w-full">
-                            <label class="label"><span class="label-text">Batch ZIP (w/ 1 receipt per pdf)</span></label>
+                            <label class="label"><span class="label-text" data-i18n="batchZipLabel">Batch ZIP (w/ 1 receipt per pdf)</span></label>
                             <input type="file" id="zip-input" class="file-input file-input-bordered w-full" accept=".zip" />
                         </div>
                         
                         <div class="w-full md:w-auto flex flex-col gap-2">
                             <div class="form-control">
                                 <label class="label cursor-pointer gap-2">
-                                    <span class="label-text font-semibold">AI Mode</span> 
+                                    <span class="label-text font-semibold" data-i18n="aiModeLabel">AI Mode</span> 
                                     <input type="checkbox" class="toggle toggle-primary" id="ai-mode-toggle" checked />
                                 </label>
                             </div>
                             <button class="btn btn-primary btn-md p-10" id="process-button" disabled>
-                                <span id="btn-text" class="text-md">Start Processing</span>
+                                <span id="btn-text" class="text-md" data-i18n="startProcessing">Start Processing</span>
                                 <span id="btn-loader" class="loading loading-spinner hidden"></span>
                             </button>
                         </div>
@@ -179,7 +202,7 @@
 
                     <div id="status-container" class="hidden mt-4">
                         <progress class="progress progress-primary w-full" id="progress-bar" max="100"></progress>
-                        <p class="text-center" id="status-text">Processing...</p>
+                        <p class="text-center" id="status-text" data-i18n="processing">Processing...</p>
                     </div>
                 </div>
             </div>
@@ -188,41 +211,41 @@
             <div id="ai-panel" class="hidden mt-6">
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
-                        <h2 class="card-title">🤖 AI Mode — 3 Easy Steps</h2>
+                        <h2 class="card-title" data-i18n="aiPanelTitle">🤖 AI Mode — 3 Easy Steps</h2>
                         <div class="steps steps-vertical lg:steps-horizontal w-full mb-4">
-                            <div class="step step-primary">Copy the prompt</div>
-                            <div class="step step-primary">Paste into ChatGPT / Gemini with your receipts</div>
-                            <div class="step step-primary">Paste the JSON response here</div>
+                            <div class="step step-primary" data-i18n="step1">Copy the prompt</div>
+                            <div class="step step-primary" data-i18n="step2">Paste into ChatGPT / Gemini with your receipts</div>
+                            <div class="step step-primary" data-i18n="step3">Paste the JSON response here</div>
                         </div>
 
                         <div class="collapse collapse-arrow border border-base-300 bg-base-200 rounded-box mb-4">
                             <input type="checkbox" checked />
-                            <div class="collapse-title font-semibold">
+                            <div class="collapse-title font-semibold" data-i18n="step1Title">
                                 Step 1 — Copy this prompt and send it to ChatGPT or Gemini along with your PDF / ZIP
                             </div>
                             <div class="collapse-content">
-                                <p class="text-sm mb-2 opacity-70">Attach the same PDF or ZIP file you uploaded here, then paste this prompt into the chat.</p>
+                                <p class="text-sm mb-2 opacity-70" data-i18n="step1Desc">Attach the same PDF or ZIP file you uploaded here, then paste this prompt into the chat.</p>
                                 <textarea id="ai-prompt-display" class="textarea textarea-bordered w-full font-mono text-xs h-64" readonly></textarea>
                                 <button id="copy-prompt-btn" class="btn btn-primary btn-sm mt-2">
-                                    📋 Copy Prompt
+                                    <span data-i18n="copyPrompt">📋 Copy Prompt</span>
                                 </button>
-                                <span id="copy-confirm" class="text-success text-sm ml-2 hidden">Copied!</span>
+                                <span id="copy-confirm" class="text-success text-sm ml-2 hidden" data-i18n="copied">Copied!</span>
                             </div>
                         </div>
 
                         <div class="collapse collapse-arrow border border-base-300 bg-base-200 rounded-box">
                             <input type="checkbox" checked />
-                            <div class="collapse-title font-semibold">
+                            <div class="collapse-title font-semibold" data-i18n="step3Title">
                                 Step 3 — Paste (or upload) the JSON returned by the chatbot
                             </div>
                             <div class="collapse-content">
-                                <p class="text-sm mb-2 opacity-70">Copy the chatbot's JSON response and paste it below, or upload it as a <code>.json</code> file.</p>
-                                <textarea id="json-paste-input" class="textarea textarea-bordered w-full font-mono text-xs h-40" placeholder='Paste JSON here, e.g. [{"id":"0","vendor":"SHOPRITE",...}]'></textarea>
+                                <p class="text-sm mb-2 opacity-70" data-i18n="step3Desc">Copy the chatbot's JSON response and paste it below, or upload it as a .json file.</p>
+                                <textarea id="json-paste-input" class="textarea textarea-bordered w-full font-mono text-xs h-40" data-i18n-placeholder="jsonPastePlaceholder" placeholder='Paste JSON here, e.g. [{"id":"0","vendor":"SHOPRITE",...}]'></textarea>
                                 <div class="flex items-center gap-3 mt-3 flex-wrap">
                                     <button id="import-json-btn" class="btn btn-success">
-                                        ✅ Import JSON &amp; Fill Table
+                                        <span data-i18n="importJson">✅ Import JSON &amp; Fill Table</span>
                                     </button>
-                                    <span class="text-sm opacity-50">or upload a file:</span>
+                                    <span class="text-sm opacity-50" data-i18n="orUpload">or upload a file:</span>
                                     <input type="file" id="json-upload-input" class="file-input file-input-bordered file-input-sm" accept=".json,application/json" />
                                 </div>
                                 <p id="json-error" class="text-error text-sm mt-2 hidden"></p>
@@ -235,19 +258,20 @@
             <div id="results-section" class="hidden mt-6">
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
-                        <h2 class="card-title">Review and Edit Receipts</h2>
+                        <h2 class="card-title" data-i18n="reviewTitle">Review and Edit Receipts</h2>
                         <div class="table-container overflow-x-auto">
                             <table class="table table-zebra table-sm w-full"> 
                                 <thead>
                                     <tr>
+                                        <th class="table-col-num" data-i18n="colNum">#</th>
                                         <th class="table-col-warn" title="Warning if name > 60 chars">!</th>
-                                        <th class="table-col-amount">Amount</th>
-                                        <th class="table-col-currency">Curr.</th>
-                                        <th class="table-col-merchant">Merchant Name</th>
-                                        <th class="table-col-line-item">Line Item</th>
-                                        <th class="table-col-coa">Chart of Accounts</th>
-                                        <th class="table-col-verified">Verified</th>
-                                        <th class="table-col-preview">View</th>
+                                        <th class="table-col-amount" data-i18n="colAmount">Amount</th>
+                                        <th class="table-col-currency" data-i18n="colCurr">Curr.</th>
+                                        <th class="table-col-merchant" data-i18n="colMerchant">Merchant Name</th>
+                                        <th class="table-col-line-item" data-i18n="colLineItem">Line Item</th>
+                                        <th class="table-col-coa" data-i18n="colCoa">Chart of Accounts</th>
+                                        <th class="table-col-verified" data-i18n="colVerified">Verified</th>
+                                        <th class="table-col-preview" data-i18n="colView">View</th>
                                         <th class="table-col-delete"></th>
                                     </tr>
                                 </thead>
@@ -257,7 +281,7 @@
                         </div>
                         <button class="btn btn-success btn-lg mt-6" id="download-zip-button">
                             <span class="text-xl">📦</span>
-                            Download Final ZIP
+                            <span data-i18n="downloadZip">Download Final ZIP</span>
                         </button>
                     </div>
                 </div>
@@ -373,6 +397,122 @@
         let allPageBytes = []; // Stores the raw PDF data for each page
         let previewWindow = null; 
         let processedResultsGlobal = [];
+        let currentDisplayLang = 'en';
+        let currentReceiptLang = 'en';
+
+        // --- 3b. TRANSLATIONS ---
+        const TRANSLATIONS = {
+            en: {
+                appName: "Quick Receipt Sorter",
+                clearPdfs: "Clear PDFs",
+                clearPdfsTitle: "Clear PDFs & Results (Keep Settings)",
+                settingsTitle: "Settings",
+                tabGeneral: "General",
+                tabCurrencies: "Currencies",
+                displayLanguage: "Display Language",
+                receiptLanguage: "Receipt Description Language",
+                theme: "Theme",
+                resetBtn: "Reset Everything (Including Settings)",
+                addCurrency: "Add Currency",
+                currencyCodePlaceholder: "Currency Code (e.g., USD)",
+                currencySymbolPlaceholder: "Symbol (e.g., $)",
+                addBtn: "Add",
+                currentCurrencies: "Current Currencies",
+                heroTitle: "🤖 Quick Receipt Sorter",
+                heroSubtitle: "Quickly automate your card recons using artificial intelligence",
+                singlePdfLabel: "Single PDF (w/ 1 receipt per page)",
+                batchZipLabel: "Batch ZIP (w/ 1 receipt per pdf)",
+                aiModeLabel: "AI Mode",
+                startProcessing: "Start Processing",
+                processing: "Processing...",
+                aiPanelTitle: "🤖 AI Mode — 3 Easy Steps",
+                step1: "Copy the prompt",
+                step2: "Paste into ChatGPT / Gemini with your receipts",
+                step3: "Paste the JSON response here",
+                step1Title: "Step 1 — Copy this prompt and send it to ChatGPT or Gemini along with your PDF / ZIP",
+                step1Desc: "Attach the same PDF or ZIP file you uploaded here, then paste this prompt into the chat.",
+                copyPrompt: "📋 Copy Prompt",
+                copied: "Copied!",
+                step3Title: "Step 3 — Paste (or upload) the JSON returned by the chatbot",
+                step3Desc: "Copy the chatbot's JSON response and paste it below, or upload it as a .json file.",
+                jsonPastePlaceholder: 'Paste JSON here, e.g. [{"id":"0","vendor":"SHOPRITE",...}]',
+                importJson: "✅ Import JSON & Fill Table",
+                orUpload: "or upload a file:",
+                reviewTitle: "Review and Edit Receipts",
+                colNum: "#",
+                colAmount: "Amount",
+                colCurr: "Curr.",
+                colMerchant: "Merchant Name",
+                colLineItem: "Line Item",
+                colCoa: "Chart of Accounts",
+                colVerified: "Verified",
+                colView: "View",
+                downloadZip: "Download Final ZIP",
+            },
+            pt: {
+                appName: "Ordenador de Recibos",
+                clearPdfs: "Limpar PDFs",
+                clearPdfsTitle: "Limpar PDFs e Resultados (Manter Configurações)",
+                settingsTitle: "Configurações",
+                tabGeneral: "Geral",
+                tabCurrencies: "Moedas",
+                displayLanguage: "Idioma de Exibição",
+                receiptLanguage: "Idioma das Descrições",
+                theme: "Tema",
+                resetBtn: "Redefinir Tudo (Incluindo Configurações)",
+                addCurrency: "Adicionar Moeda",
+                currencyCodePlaceholder: "Código da moeda (ex.: USD)",
+                currencySymbolPlaceholder: "Símbolo (ex.: $)",
+                addBtn: "Adicionar",
+                currentCurrencies: "Moedas Actuais",
+                heroTitle: "🤖 Ordenador de Recibos",
+                heroSubtitle: "Automatize as suas reconciliações de cartão com inteligência artificial",
+                singlePdfLabel: "PDF único (1 recibo por página)",
+                batchZipLabel: "ZIP em lote (1 recibo por PDF)",
+                aiModeLabel: "Modo IA",
+                startProcessing: "Iniciar Processamento",
+                processing: "A processar...",
+                aiPanelTitle: "🤖 Modo IA — 3 Passos Simples",
+                step1: "Copiar o prompt",
+                step2: "Colar no ChatGPT / Gemini com os recibos",
+                step3: "Colar a resposta JSON aqui",
+                step1Title: "Passo 1 — Copie este prompt e envie ao ChatGPT ou Gemini com o PDF / ZIP",
+                step1Desc: "Anexe o mesmo PDF ou ZIP que carregou aqui e depois cole este prompt no chat.",
+                copyPrompt: "📋 Copiar Prompt",
+                copied: "Copiado!",
+                step3Title: "Passo 3 — Cole (ou carregue) o JSON devolvido pelo chatbot",
+                step3Desc: "Copie a resposta JSON do chatbot e cole abaixo, ou carregue um ficheiro .json.",
+                jsonPastePlaceholder: 'Cole o JSON aqui, ex.: [{"id":"0","vendor":"SHOPRITE",...}]',
+                importJson: "✅ Importar JSON e Preencher Tabela",
+                orUpload: "ou carregue um ficheiro:",
+                reviewTitle: "Rever e Editar Recibos",
+                colNum: "#",
+                colAmount: "Valor",
+                colCurr: "Moeda",
+                colMerchant: "Comerciante",
+                colLineItem: "Descrição",
+                colCoa: "Plano de Contas",
+                colVerified: "Verificado",
+                colView: "Ver",
+                downloadZip: "Descarregar ZIP Final",
+            }
+        };
+
+        function applyTranslations(lang) {
+            const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key] !== undefined) el.textContent = t[key];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (t[key] !== undefined) el.placeholder = t[key];
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (t[key] !== undefined) el.title = t[key];
+            });
+        }
 
         // --- 4. DOM ELEMENTS ---
         const settingsModal = document.getElementById('settings-modal');
@@ -717,7 +857,9 @@ IMPORTANT — Return ONLY a JSON array wrapped in a markdown code fence. No expl
 ]
 \`\`\`
 
-Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and return the JSON array.`;
+Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and return the JSON array.
+
+OUTPUT LANGUAGE: Write all text values in the JSON (vendor, line_item) in ${currentReceiptLang === 'pt' ? 'Portuguese (European/Mozambican)' : 'English'}. Use ALL CAPS as instructed above.`;
         }
 
         function showAIPromptPanel(receiptCount) {
@@ -878,7 +1020,12 @@ Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and retu
                     tr.className = 'hover';
                 }
 
-                // --- NEW COLUMN: Warning Icon ---
+                // --- Receipt Number Column ---
+                tr.innerHTML += `
+                    <td class="table-col-num text-center align-middle">${index + 1}</td>
+                `;
+
+                // --- Warning Icon Column ---
                 tr.innerHTML += `
                     <td class="table-col-warn text-center align-middle warn-cell text-error font-bold">
                         ${isTooLong ? '<div class="tooltip tooltip-right" data-tip="Name > 60 chars">⚠️</div>' : ''}
@@ -1008,7 +1155,7 @@ Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and retu
                 try {
                     await idbClear();
                 } catch (e) { console.warn('IDB clear failed', e); }
-                ['gemini_theme','gemini_currencies','receipts_pages','receipts_results'].forEach(k => localStorage.removeItem(k));
+                ['gemini_theme','gemini_currencies','display_lang','receipt_lang','receipts_pages','receipts_results'].forEach(k => localStorage.removeItem(k));
                 allPageBytes = [];
                 processedResultsGlobal = [];
                 tableBody.innerHTML = '';
@@ -1202,6 +1349,17 @@ Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and retu
                 const savedTheme = await idbGet('gemini_theme') || localStorage.getItem('gemini_theme');
                 if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
                 if (themeSelect) themeSelect.value = savedTheme || document.documentElement.getAttribute('data-theme') || 'light';
+
+                const savedDisplayLang = await idbGet('display_lang') || localStorage.getItem('display_lang') || 'en';
+                const savedReceiptLang = await idbGet('receipt_lang') || localStorage.getItem('receipt_lang') || 'en';
+                currentDisplayLang = savedDisplayLang;
+                currentReceiptLang = savedReceiptLang;
+                const displayLangSelect = document.getElementById('display-lang-select');
+                const receiptLangSelect = document.getElementById('receipt-lang-select');
+                if (displayLangSelect) displayLangSelect.value = savedDisplayLang;
+                if (receiptLangSelect) receiptLangSelect.value = savedReceiptLang;
+                applyTranslations(savedDisplayLang);
+
                 await updateCurrencyList();
 
                 try {
@@ -1237,6 +1395,17 @@ Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and retu
                 } catch (err) { 
                     localStorage.setItem('gemini_theme', theme); 
                 }
+            });
+
+            document.getElementById('display-lang-select')?.addEventListener('change', async (e) => {
+                currentDisplayLang = e.target.value;
+                applyTranslations(currentDisplayLang);
+                try { await idbSet('display_lang', currentDisplayLang); } catch (err) { localStorage.setItem('display_lang', currentDisplayLang); }
+            });
+
+            document.getElementById('receipt-lang-select')?.addEventListener('change', async (e) => {
+                currentReceiptLang = e.target.value;
+                try { await idbSet('receipt_lang', currentReceiptLang); } catch (err) { localStorage.setItem('receipt_lang', currentReceiptLang); }
             });
 
             settingsButton?.addEventListener('click', () => {
