@@ -33,7 +33,7 @@
         .table-col-amount { width: 10%; }
         .table-col-currency { width: 7%; }
         .table-col-merchant { width: 20%; }
-        .table-col-category { width: 18%; }
+        .table-col-line-item { width: 18%; }
         .table-col-coa { width: 25%; }
         .table-col-preview { width: 5%; }
         .table-col-delete { width: 4%; text-align: center; } /* NEW COLUMN */
@@ -72,20 +72,10 @@
                 
                 <div class="tabs tabs-boxed mb-4">
                     <a class="tab tab-active" data-tab="general">General</a>
-                    <a class="tab" data-tab="prompt">AI Prompt</a>
                     <a class="tab" data-tab="currencies">Currencies</a>
                 </div>
 
                 <div class="tab-content block" id="general-settings">
-                    <div class="form-control w-full">
-                        <label class="label">
-                            <span class="label-text">Gemini API Key</span>
-                        </label>
-                        <input type="password" id="api-key-input" class="input input-bordered w-full" 
-                               placeholder="Enter your API key">
-                               <p>You can get a free API key (a way to access Google's API Gemini) from <a class="link" target="_blank" href="https://aistudio.google.com/api-keys">Google AI Studio</a>. Note: missionary.org accounts are blocked from using this service.  Use a gmail.com account.</p>
-                    </div>
-
                     <div class="form-control w-full mt-4">
                         <label class="label">
                             <span class="label-text">Theme</span>
@@ -119,16 +109,6 @@
                     </div>
                 </div>
 
-                <div class="tab-content" id="prompt-settings">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Custom AI Prompt</span>
-                        </label>
-                        <textarea id="custom-prompt" class="textarea textarea-bordered h-64" 
-                                  placeholder="Enter your custom prompt template..."></textarea>
-                    </div>
-                </div>
-                
                 <div class="tab-content" id="currencies-settings">
                     <div class="form-control">
                         <label class="label">
@@ -187,7 +167,7 @@
                             <div class="form-control">
                                 <label class="label cursor-pointer gap-2">
                                     <span class="label-text font-semibold">AI Mode</span> 
-                                    <input type="checkbox" class="toggle toggle-primary" id="ai-mode-toggle" />
+                                    <input type="checkbox" class="toggle toggle-primary" id="ai-mode-toggle" checked />
                                 </label>
                             </div>
                             <button class="btn btn-primary btn-md p-10" id="process-button" disabled>
@@ -204,6 +184,54 @@
                 </div>
             </div>
 
+            <!-- AI Mode: Prompt + JSON Upload Panel -->
+            <div id="ai-panel" class="hidden mt-6">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title">🤖 AI Mode — 3 Easy Steps</h2>
+                        <div class="steps steps-vertical lg:steps-horizontal w-full mb-4">
+                            <div class="step step-primary">Copy the prompt</div>
+                            <div class="step step-primary">Paste into ChatGPT / Gemini with your receipts</div>
+                            <div class="step step-primary">Paste the JSON response here</div>
+                        </div>
+
+                        <div class="collapse collapse-arrow border border-base-300 bg-base-200 rounded-box mb-4">
+                            <input type="checkbox" checked />
+                            <div class="collapse-title font-semibold">
+                                Step 1 — Copy this prompt and send it to ChatGPT or Gemini along with your PDF / ZIP
+                            </div>
+                            <div class="collapse-content">
+                                <p class="text-sm mb-2 opacity-70">Attach the same PDF or ZIP file you uploaded here, then paste this prompt into the chat.</p>
+                                <textarea id="ai-prompt-display" class="textarea textarea-bordered w-full font-mono text-xs h-64" readonly></textarea>
+                                <button id="copy-prompt-btn" class="btn btn-primary btn-sm mt-2">
+                                    📋 Copy Prompt
+                                </button>
+                                <span id="copy-confirm" class="text-success text-sm ml-2 hidden">Copied!</span>
+                            </div>
+                        </div>
+
+                        <div class="collapse collapse-arrow border border-base-300 bg-base-200 rounded-box">
+                            <input type="checkbox" checked />
+                            <div class="collapse-title font-semibold">
+                                Step 3 — Paste (or upload) the JSON returned by the chatbot
+                            </div>
+                            <div class="collapse-content">
+                                <p class="text-sm mb-2 opacity-70">Copy the chatbot's JSON response and paste it below, or upload it as a <code>.json</code> file.</p>
+                                <textarea id="json-paste-input" class="textarea textarea-bordered w-full font-mono text-xs h-40" placeholder='Paste JSON here, e.g. [{"id":"0","vendor":"SHOPRITE",...}]'></textarea>
+                                <div class="flex items-center gap-3 mt-3 flex-wrap">
+                                    <button id="import-json-btn" class="btn btn-success">
+                                        ✅ Import JSON &amp; Fill Table
+                                    </button>
+                                    <span class="text-sm opacity-50">or upload a file:</span>
+                                    <input type="file" id="json-upload-input" class="file-input file-input-bordered file-input-sm" accept=".json,application/json" />
+                                </div>
+                                <p id="json-error" class="text-error text-sm mt-2 hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="results-section" class="hidden mt-6">
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
@@ -216,7 +244,7 @@
                                         <th class="table-col-amount">Amount</th>
                                         <th class="table-col-currency">Curr.</th>
                                         <th class="table-col-merchant">Merchant Name</th>
-                                        <th class="table-col-category">Line Item</th>
+                                        <th class="table-col-line-item">Line Item</th>
                                         <th class="table-col-coa">Chart of Accounts</th>
                                         <th class="table-col-verified">Verified</th>
                                         <th class="table-col-preview">View</th>
@@ -341,31 +369,14 @@
             { number: "6XXX 990 5462", name: "Gain/Loss on Exchange" }
         ];
 
-        // Your preferred line items
-        const PREFERRED_CATEGORIES = [
-            "FURNISHINGS",
-            "DIESEL FUEL",
-            "FOOD FOR CONFERENCE",
-            "TRAVEL MEAL",
-            "NIGHTS AT HOTEL",
-            "OFFICE SUPPLIES",
-            "MISSIONARY TRAVEL"
-        ];
-        
         // --- 3. GLOBAL VARIABLES ---
         let allPageBytes = []; // Stores the raw PDF data for each page
-        let currentApiKey = null;
         let previewWindow = null; 
         let processedResultsGlobal = [];
-        const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `- ${a.number}: ${a.name}`).join("\n");
-        const categoriesText = PREFERRED_CATEGORIES.join("\n");
 
         // --- 4. DOM ELEMENTS ---
-        // Use the unified settings modal (contains API key, prompt, theme, currencies)
         const settingsModal = document.getElementById('settings-modal');
-        const apiKeyInput = document.getElementById('api-key-input');
         const themeSelect = document.getElementById('theme-select');
-        const customPromptInput = document.getElementById('custom-prompt');
         const mainContent = document.getElementById('main-content');
         const fileInput = document.getElementById('file-input');
         // New ZIP input (optional batch mode)
@@ -384,23 +395,8 @@
         const clearPdfsButton = document.getElementById('clear-pdfs-button');
 
         // --- 5. SETTINGS HANDLING ---
-        // Persisted values: gemini_api_key, gemini_prompt, gemini_theme, gemini_currencies, receipts_pages, receipts_results
-        async function checkApiKey() {
-            try {
-                const key = await idbGet('gemini_api_key') || localStorage.getItem('gemini_api_key');
-                if (key) {
-                    currentApiKey = key;
-                    // Initialize toggle based on key presence
-                    aiModeToggle.checked = true;
-                } else {
-                    aiModeToggle.checked = false;
-                }
-                // Always show content, don't block user if they want to use Manual Mode
-                mainContent.classList.remove('hidden');
-            } catch (e) {
-                console.warn('IDB read error in checkApiKey', e);
-                mainContent.classList.remove('hidden');
-            }
+        async function initMainContent() {
+            mainContent.classList.remove('hidden');
         }
 
         // Currency helpers (simple add/remove stored in localStorage)
@@ -562,13 +558,9 @@
             processButton.disabled = true;
         });
         
-        // --- NEW: Toggle Logic Logic ---
+        // --- NEW: Toggle Logic ---
         aiModeToggle.addEventListener('change', function() {
-            if (this.checked && !currentApiKey) {
-                alert("To use AI Mode, you must first enter a valid Gemini API Key in Settings.");
-                settingsModal.showModal();
-                this.checked = false; // Reset toggle back to off
-            }
+            // No API key required — AI mode uses copy/paste workflow
         });
 
         processButton.addEventListener('click', async () => {
@@ -635,32 +627,28 @@
                 if (!useAI) {
                     // --- Manual Mode Logic ---
                     statusText.textContent = "Manual Mode: Skipping AI processing...";
-                    // Generate blank results
                     processedResults = pdfBase64Batch.map((item) => ({
                         id: item.id,
                         vendor: "",
                         total: "",
-                        currency: "MZN", // default
-                        category: "",
+                        currency: "MZN",
+                        line_item: "",
                         account_number: "",
                         verified: false
                     }));
+
+                    // Persist results
+                    try { await idbSet('receipts_results', processedResults); } catch (e) { try { localStorage.setItem('receipts_results', JSON.stringify(processedResults)); } catch (er) {} }
+                    statusText.textContent = "Done! Rendering table...";
+                    await renderTable(processedResults);
+                    resultsSection.classList.remove('hidden');
+                    statusContainer.classList.add('hidden');
+
                 } else {
-                    // --- Existing AI Logic ---
-                    // Step: Call AI to analyze batch
-                    statusText.textContent = `Analyzing ${pdfBase64Batch.length} receipts with AI...`;
-                    const promptPayload = await buildLLMBatchPayload(pdfBase64Batch); // Now async
-                    processedResults = await callAIFallback(promptPayload);
+                    // --- AI Mode: show prompt + JSON upload panel ---
+                    statusContainer.classList.add('hidden');
+                    showAIPromptPanel(pdfBase64Batch.length);
                 }
-
-                // Persist results
-                try { await idbSet('receipts_results', processedResults); } catch (e) { console.warn('Could not persist results to IDB, falling back to localStorage:', e); try { localStorage.setItem('receipts_results', JSON.stringify(processedResults)); } catch (er) { console.warn('Could not persist results to localStorage either', er); } }
-
-                // Render
-                statusText.textContent = "Done! Rendering table...";
-                await renderTable(processedResults);
-                resultsSection.classList.remove('hidden');
-                statusContainer.classList.add('hidden');
 
             } catch (err) {
                 console.error(err);
@@ -693,189 +681,118 @@
             }
         }
 
-        // --- 7. AI & PROMPT LOGIC ---
-          const DEFAULT_PROMPT_TEMPLATE = `
-            You are an expert financial analyst. I will provide a series of one-page PDF receipts.
-            For each receipt, analyze its layout, text, and images to extract the key information.
+        // --- 7. AI PROMPT GENERATION & JSON IMPORT ---
 
-            Here is your Chart of Accounts. Use it to find the *best* account_number:
-            ---
-            ${coaText}
-            ---
+        function buildAIPrompt(receiptCount) {
+            const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `  - "${a.number}": ${a.name}`).join("\n");
+            const ids = Array.from({length: receiptCount}, (_, i) => i).join(', ');
 
-            Here are your 7 Preferred Categories. Use it to find the *best* category:
-            ---
-            ${categoriesText}
-            ---
+            return `You are an expert financial data extractor. I have attached ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} (${receiptCount === 1 ? 'a single PDF' : 'either a multi-page PDF where each page is one receipt, or a ZIP containing individual PDFs'}). Please analyse each receipt carefully.
 
-            After analyzing all the receipts, call the \`submit_receipt_data\` function with a single array containing the data for *all* receipts. The ID for each object must match the "Receipt ID" I provide.
+RECEIPT IDs: The receipts are numbered starting from 0. Receipt 0 is the first page/file, receipt 1 is the second, and so on. IDs for this batch: ${ids}.
 
-            Now, please process the following receipts:
-            `;
-        async function buildLLMBatchPayload(pdfBatch) {
-            
-            const tools = [
-                {
-                    functionDeclarations: [
-                        {
-                            name: "submit_receipt_data",
-                            description: "Submits the extracted data for a batch of receipts.",
-                            parameters: {
-                                type: "OBJECT",
-                                properties: {
-                                    receipts: {
-                                        type: "ARRAY",
-                                        description: "An array of receipt objects.",
-                                        items: {
-                                            type: "OBJECT",
-                                            properties: {
-                                                id: {
-                                                    type: "STRING",
-                                                    description: "The ID of the receipt, e.g., '0', '1', '2'."
-                                                },
-                                                vendor: {
-                                                    type: "STRING",
-                                                    description: "The merchant or store name (IN ALL CAPS)."
-                                                },
-                                                total: {
-                                                    type: "NUMBER",
-                                                    description: "The final total amount as a number (e.g., 123.45)."
-                                                },
-                                                currency: {
-                                                    type: "STRING",
-                                                    description: "The 3-letter currency code (MZN, USD, or ZAR). Default to MZN if unsure."
-                                                },
-                                                category: {
-                                                    type: "STRING",
-                                                    description: "The best matching category (IN ALL CAPS)."
-                                                },
-                                                account_number: {
-                                                    type: "STRING",
-                                                    description: "The matching account number (e.g., '000 5170')."
-                                                }
-                                            },
-                                            required: ["id", "vendor", "total", "currency", "category", "account_number"]
-                                        }
-                                    }
-                                },
-                                required: ["receipts"]
-                            }
-                        }
-                    ]
-                }
-            ];
+For EACH receipt extract:
+  • id               — the receipt number as a string (e.g. "0", "1", "2")
+  • vendor           — merchant / store name IN ALL CAPS
+  • total            — the final total amount as a plain number (e.g. 123.45)
+  • currency         — 3-letter code. Choose from: MZN, USD, ZAR. Default to MZN if unsure.
+  • line_item        — a 1–3 word description of what was purchased, IN ALL CAPS.
 
-            const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `- ${a.number}: ${a.name}`).join("\n");
-            const categoriesText = PREFERRED_CATEGORIES.join("\n");
-            
-            let customPrompt = "";
-            try {
-                customPrompt = await idbGet('gemini_prompt') || localStorage.getItem('gemini_prompt') || "";
-            } catch (e) { console.warn("Could not load custom prompt", e); }
-            
-            
-            const defaultPrompt = `
-You are an expert financial analyst. I will provide a series of one-page PDF receipts.
-For each receipt, analyze its layout, text, and images to extract the key information.
+    A good line item:
+    - Names the specific thing bought, not the act of buying (e.g. "DIESEL FUEL" not "FUEL PURCHASE")
+    - Is concrete and scannable at a glance (e.g. "HOTEL STAY", "FLIGHT TICKET", "OFFICE SUPPLIES", "VEHICLE REPAIR", "GROCERIES", "INTERNET BILL", "MEDICAL CONSULT")
+    - Avoids vague filler words like PAYMENT, PURCHASE, EXPENSE, TRANSACTION, MISCELLANEOUS
+    - Uses the most descriptive noun possible — if the receipt is from a pharmacy, write "MEDICATION" not "PHARMACY VISIT"
+    - Does NOT repeat the vendor name (the vendor field already captures that)
+  • account_number   — the best matching account number from the Chart of Accounts below (e.g. "000 5170")
 
-Here is your Chart of Accounts. Use it to find the *best* account_number:
----
+CHART OF ACCOUNTS (use the account number that best matches the expense):
 ${coaText}
----
 
-Here are your 7 Preferred Categories. Use it to find the *best* category:
----
-${categoriesText}
----
+IMPORTANT — Return ONLY a JSON array wrapped in a markdown code fence. No explanation or extra text outside the fence. Example format:
+\`\`\`json
+[
+  {"id":"0","vendor":"SHOPRITE","total":450.00,"currency":"MZN","line_item":"GROCERIES","account_number":"000 5200"},
+  {"id":"1","vendor":"SHELL","total":1200.50,"currency":"MZN","line_item":"DIESEL FUEL","account_number":"000 5170"}
+]
+\`\`\`
 
-After analyzing all the receipts, call the \`submit_receipt_data\` function with a single array containing the data for *all* receipts. The ID for each object must match the "Receipt ID" I provide.
-
-Now, please process the following receipts:
-`;
-            const mainPrompt = customPrompt.trim() ? customPrompt : DEFAULT_PROMPT_TEMPLATE; 
-            const contents = [
-                { parts: [{ text: mainPrompt }] }
-            ];
-
-            pdfBatch.forEach(receipt => {
-                contents.push(
-                    { parts: [{ text: `Receipt ID: ${receipt.id}` }] }, 
-                    { 
-                        parts: [{ 
-                            inlineData: {
-                                mimeType: 'application/pdf',
-                                data: receipt.base64Data
-                            }
-                        }]
-                    }
-                );
-            });
-            
-            contents.push(
-                { parts: [{ text: "Processing complete. Please call the `submit_receipt_data` function now." }] }
-            );
-
-            return { 
-                contents: contents,
-                tools: tools 
-            };
+Now process all ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} and return the JSON array.`;
         }
 
-        async function callAIFallback(payload) {
-            
-            const models = [
-                "gemini-2.0-flash",
-                "gemini-2.0-flash-lite-preview-02-05",
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-            ];
+        function showAIPromptPanel(receiptCount) {
+            const panel = document.getElementById('ai-panel');
+            const promptDisplay = document.getElementById('ai-prompt-display');
 
-            for (const model of models) {
-                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
-                
+            promptDisplay.value = buildAIPrompt(receiptCount);
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth' });
+
+            // Copy button
+            document.getElementById('copy-prompt-btn').onclick = () => {
+                promptDisplay.select();
+                navigator.clipboard.writeText(promptDisplay.value).catch(() => {
+                    document.execCommand('copy');
+                });
+                const confirm = document.getElementById('copy-confirm');
+                confirm.classList.remove('hidden');
+                setTimeout(() => confirm.classList.add('hidden'), 2000);
+            };
+
+            const jsonPaste = document.getElementById('json-paste-input');
+            const jsonFileInput = document.getElementById('json-upload-input');
+            const importBtn = document.getElementById('import-json-btn');
+            const jsonError = document.getElementById('json-error');
+
+            // When a file is selected, read it into the textarea
+            jsonFileInput.onchange = async () => {
+                if (!jsonFileInput.files.length) return;
+                const text = await jsonFileInput.files[0].text();
+                jsonPaste.value = text;
+                jsonError.classList.add('hidden');
+            };
+
+            async function doImport() {
+                const raw = jsonPaste.value.trim();
+                if (!raw) {
+                    jsonError.textContent = 'Please paste or upload a JSON response first.';
+                    jsonError.classList.remove('hidden');
+                    return;
+                }
+                jsonError.classList.add('hidden');
                 try {
-                    console.log(`Attempting to call AI model: ${model}`);
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                    // Strip optional markdown fences if model added them
+                    const clean = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+                    const parsed = JSON.parse(clean);
+
+                    if (!Array.isArray(parsed)) throw new Error('Expected a JSON array at the top level.');
+
+                    // Normalise fields
+                    parsed.forEach((item, i) => {
+                        if (item.id === undefined) item.id = String(i);
+                        if (!item.vendor) item.vendor = '';
+                        if (item.total === undefined || item.total === null) item.total = '';
+                        if (!item.currency) item.currency = 'MZN';
+                        if (!item.line_item) item.line_item = '';
+                        if (!item.account_number) item.account_number = '';
+                        item.verified = false;
                     });
 
-                    if (!response.ok) {
-                        const errorBody = await response.json();
-                        console.warn(`Model ${model} failed: ${errorBody.error.message}`);
-                    } else {
-                        const data = await response.json();
-                        
-                        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
-                             console.warn(`Model ${model} returned an invalid response structure (no parts):`, data);
-                             continue; 
-                        }
-                        
-                        const part = data.candidates[0].content.parts[0];
-                        
-                        if (!part.functionCall || !part.functionCall.args) {
-                            console.error("AI Response Error: No function call was returned.", data);
-                            throw new Error("AI did not return a function call. Check console.");
-                        }
+                    // Persist and render
+                    try { await idbSet('receipts_results', parsed); } catch (e) { try { localStorage.setItem('receipts_results', JSON.stringify(parsed)); } catch (er) {} }
 
-                        const results = part.functionCall.args.receipts; 
-
-                        if (!Array.isArray(results)) {
-                            console.error("AI Response Error: 'receipts' is not an array.", part.functionCall.args);
-                            throw new Error("AI did not return a valid receipt array. Check console.");
-                        }
-                        
-                        console.log(`Successfully got response from ${model}`);
-                        return results; 
-                    }
+                    await renderTable(parsed);
+                    resultsSection.classList.remove('hidden');
+                    panel.classList.add('hidden');
+                    resultsSection.scrollIntoView({ behavior: 'smooth' });
 
                 } catch (err) {
-                    console.warn(`Network or parsing error for model ${model}:`, err);
+                    jsonError.textContent = `Error reading JSON: ${err.message}`;
+                    jsonError.classList.remove('hidden');
                 }
             }
-            
-            throw new Error("All AI models failed. Please check your API key and network connection, or try again later.");
+
+            importBtn.onclick = doImport;
         }
 
 
@@ -944,12 +861,12 @@ Now, please process the following receipts:
                 tr.setAttribute('data-index', index); 
                 
                 // --- NEW: Calculate Length Logic ---
-                // Format: Currency amount MZN + vendor name + Line Item
+                // Format: Amount + currency + vendor + line description
                 const amtStr = String(result.total || '');
                 const vndStr = (result.vendor || '');
-                const catStr = (result.category || '');
+                const catStr = (result.line_item || '');
                 
-                // Using exact formula "Currency amount MZN + vendor name + Line Item" implies:
+                // Using formula: Amount + " MZN " + Vendor + " " + Line Description
                 // [Amount] + " MZN " + [Vendor] + " " + [Category]
                 const fullString = `${amtStr} MZN - ${vndStr} - ${catStr}`;
                 const isTooLong = fullString.length > 57;
@@ -993,7 +910,7 @@ Now, please process the following receipts:
 
                 tr.innerHTML += `
                     <td>
-                        <input class="input input-bordered input-sm w-full input-category uppercase" type="text" value="${result.category || ''}" placeholder="ITEM">
+                        <input class="input input-bordered input-sm w-full input-line-item uppercase" type="text" value="${result.line_item || ''}" placeholder="LINE ITEM">
                     </td>
                 `;
 
@@ -1033,7 +950,7 @@ Now, please process the following receipts:
                 '#results-table-body .input-amount, ' +
                 '#results-table-body .select-currency, ' +
                 '#results-table-body .input-vendor, ' +
-                '#results-table-body .input-category, ' +
+                '#results-table-body .input-line-item, ' +
                 '#results-table-body .select-coa, ' +
                 '#results-table-body .verify-checkbox' 
             ).forEach(input => {
@@ -1091,7 +1008,7 @@ Now, please process the following receipts:
                 try {
                     await idbClear();
                 } catch (e) { console.warn('IDB clear failed', e); }
-                ['gemini_api_key','gemini_prompt','gemini_theme','gemini_currencies','receipts_pages','receipts_results'].forEach(k => localStorage.removeItem(k));
+                ['gemini_theme','gemini_currencies','receipts_pages','receipts_results'].forEach(k => localStorage.removeItem(k));
                 allPageBytes = [];
                 processedResultsGlobal = [];
                 tableBody.innerHTML = '';
@@ -1125,7 +1042,7 @@ Now, please process the following receipts:
                 // Re-fetch current DOM values to verify length
                 const currentAmt = row.querySelector('.input-amount').value || '';
                 const currentVnd = row.querySelector('.input-vendor').value || '';
-                const currentCat = row.querySelector('.input-category').value || '';
+                const currentCat = row.querySelector('.input-line-item').value || '';
                 
                 // Formula: Amount + " MZN " + Vendor + " " + Category
                 const checkString = `${currentAmt} MZN ${currentVnd} ${currentCat}`;
@@ -1151,7 +1068,7 @@ Now, please process the following receipts:
                     'input-amount': 'total',
                     'select-currency': 'currency',
                     'input-vendor': 'vendor',
-                    'input-category': 'category',
+                    'input-line-item': 'line_item',
                     'select-coa': 'account_number',
                     'verify-checkbox': 'verified'
                 };
@@ -1169,7 +1086,7 @@ Now, please process the following receipts:
                     
                     if (propertyToUpdate === 'total') {
                         value = parseFloat(value) || 0.00; 
-                    } else if (propertyToUpdate === 'vendor' || propertyToUpdate === 'category') {
+                    } else if (propertyToUpdate === 'vendor' || propertyToUpdate === 'line_item') {
                         value = value.toUpperCase(); 
                         if(e.type === 'change') input.value = value; // Force uppercase in UI on blur
                     }
@@ -1240,12 +1157,11 @@ Now, please process the following receipts:
                 const amount = row.querySelector('.input-amount').value;
                 const currency = row.querySelector('.select-currency').value;
                 const vendor = row.querySelector('.input-vendor').value.toUpperCase();
-                const category = row.querySelector('.input-category').value.toUpperCase();
+                const line_item = row.querySelector('.input-line-item').value.toUpperCase();
                 const coa = row.querySelector('.select-coa').value;
                 
-                // Sanitize filename
                 const safeVendor = vendor.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
-                const safeCat = category.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
+                const safeCat = line_item.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
                 
                 const filename = `${amount} ${currency} - ${safeVendor} - ${safeCat}.pdf`;
                 
@@ -1255,8 +1171,8 @@ Now, please process the following receipts:
                 const rawPdfBytes = allPageBytes[index];
                 
                 const pdfWithMeta = await addMetadataToPDF(rawPdfBytes, {
-                    title: `${amount} ${currency} - ${vendor} - ${category}`,
-                    subject: category,
+                    title: `${amount} ${currency} - ${vendor} - ${line_item}`,
+                    subject: line_item,
                     accountCode: coa
                 });
                 zip.file(filename, pdfWithMeta);
@@ -1283,17 +1199,6 @@ Now, please process the following receipts:
         // --- 10. INITIALIZATION ---
         (async function initFromStorage(){
             try {
-                const savedKey = await idbGet('gemini_api_key') || localStorage.getItem('gemini_api_key');
-                if (savedKey) apiKeyInput.value = savedKey;
-                const savedPrompt = await idbGet('gemini_prompt') || localStorage.getItem('gemini_prompt');
-                if (customPromptInput) {
-                    if (savedPrompt) {
-                        customPromptInput.value = savedPrompt;
-                    } else {
-                        customPromptInput.value = DEFAULT_PROMPT_TEMPLATE; 
-                    }
-                }                
-                if (savedPrompt && customPromptInput) customPromptInput.value = savedPrompt;
                 const savedTheme = await idbGet('gemini_theme') || localStorage.getItem('gemini_theme');
                 if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
                 if (themeSelect) themeSelect.value = savedTheme || document.documentElement.getAttribute('data-theme') || 'light';
@@ -1316,7 +1221,7 @@ Now, please process the following receipts:
             }
         })();
 
-        (async () => { await checkApiKey(); })();
+        (async () => { await initMainContent(); })();
 
         (function initializeSettings() {
             const settingsButton = document.getElementById('settings-button');
@@ -1333,33 +1238,6 @@ Now, please process the following receipts:
                     localStorage.setItem('gemini_theme', theme); 
                 }
             });
-
-            apiKeyInput?.addEventListener('change', async (e) => {
-                const key = e.target.value.trim();
-                if (key) {
-                    try { 
-                        await idbSet('gemini_api_key', key); 
-                    } catch (err) { 
-                        localStorage.setItem('gemini_api_key', key); 
-                    }
-                    currentApiKey = key; 
-                    
-                    if (mainContent.classList.contains('hidden')) {
-                        try { settingsModal.close(); } catch (e) {}
-                        mainContent.classList.remove('hidden');
-                    }
-                }
-            });
-
-            customPromptInput?.addEventListener('change', async (e) => {
-                const prompt = e.target.value;
-                try { 
-                    await idbSet('gemini_prompt', prompt); 
-                } catch (err) { 
-                    localStorage.setItem('gemini_prompt', prompt); 
-                }
-            });
-
 
             settingsButton?.addEventListener('click', () => {
                 settingsModal?.showModal();
