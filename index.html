@@ -33,7 +33,7 @@
         .table-col-amount { width: 10%; }
         .table-col-currency { width: 7%; }
         .table-col-merchant { width: 20%; }
-        .table-col-category { width: 18%; }
+        .table-col-line-description { width: 18%; }
         .table-col-coa { width: 25%; }
         .table-col-preview { width: 5%; }
         .table-col-delete { width: 4%; text-align: center; } /* NEW COLUMN */
@@ -198,7 +198,7 @@
                         <p class="text-sm mb-3">
                             1) Upload your same receipts PDF/ZIP to ChatGPT/Gemini Pro.
                             2) Paste the generated prompt below.
-                            3) Save the chatbot response as JSON and upload it here.
+                            3) Paste the chatbot JSON response below (or upload a JSON file).
                         </p>
                         <label class="label"><span class="label-text">Prompt to copy</span></label>
                         <textarea id="ai-generated-prompt" class="textarea textarea-bordered w-full h-56 text-xs" readonly></textarea>
@@ -207,7 +207,9 @@
                             <span id="copy-ai-prompt-status" class="text-sm opacity-70 self-center"></span>
                         </div>
                         <div class="mt-4">
-                            <label class="label"><span class="label-text">Upload AI JSON response</span></label>
+                            <label class="label"><span class="label-text">Paste AI JSON response</span></label>
+                            <textarea id="json-paste-input" class="textarea textarea-bordered w-full h-44 font-mono text-xs" placeholder='Paste JSON here (array or {"receipts":[...]})'></textarea>
+                            <label class="label mt-2"><span class="label-text">Or upload AI JSON response</span></label>
                             <input type="file" id="json-input" class="file-input file-input-bordered w-full" accept=".json,application/json" />
                             <button id="load-json-button" class="btn btn-accent mt-3">Load JSON Into Table</button>
                         </div>
@@ -227,7 +229,7 @@
                                         <th class="table-col-amount">Amount</th>
                                         <th class="table-col-currency">Curr.</th>
                                         <th class="table-col-merchant">Merchant Name</th>
-                                        <th class="table-col-category">Line Item</th>
+                                        <th class="table-col-line-description">Line Description</th>
                                         <th class="table-col-coa">Chart of Accounts</th>
                                         <th class="table-col-verified">Verified</th>
                                         <th class="table-col-preview">View</th>
@@ -352,24 +354,12 @@
             { number: "6XXX 990 5462", name: "Gain/Loss on Exchange" }
         ];
 
-        // Your preferred line items
-        const PREFERRED_CATEGORIES = [
-            "FURNISHINGS",
-            "DIESEL FUEL",
-            "FOOD FOR CONFERENCE",
-            "TRAVEL MEAL",
-            "NIGHTS AT HOTEL",
-            "OFFICE SUPPLIES",
-            "MISSIONARY TRAVEL"
-        ];
-        
         // --- 3. GLOBAL VARIABLES ---
         let allPageBytes = []; // Stores the raw PDF data for each page
         let previewWindow = null; 
         let processedResultsGlobal = [];
         let pendingAiReceiptIds = [];
         const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `- ${a.number}: ${a.name}`).join("\n");
-        const categoriesText = PREFERRED_CATEGORIES.join("\n");
 
         // --- 4. DOM ELEMENTS ---
         // Use the unified settings modal (contains API key, prompt, theme, currencies)
@@ -397,6 +387,7 @@
         const copyAiPromptButton = document.getElementById('copy-ai-prompt-button');
         const copyAiPromptStatus = document.getElementById('copy-ai-prompt-status');
         const jsonInput = document.getElementById('json-input');
+        const jsonPasteInput = document.getElementById('json-paste-input');
         const loadJsonButton = document.getElementById('load-json-button');
 
         // --- 5. SETTINGS HANDLING ---
@@ -576,14 +567,13 @@
                 vendor: String(item.vendor || "").toUpperCase(),
                 total: Number(item.total ?? 0),
                 currency: String(item.currency || "MZN").toUpperCase(),
-                category: String(item.category || "").toUpperCase(),
+                category: String(item.line_description || item.category || "").toUpperCase(),
                 account_number: String(item.account_number || ""),
                 verified: Boolean(item.verified ?? false)
             }));
         }
 
-        async function loadResultsFromJsonFile(file) {
-            const text = await file.text();
+        function parseAndValidateAiJson(text) {
             const parsed = JSON.parse(text);
             const receipts = Array.isArray(parsed) ? parsed : parsed.receipts;
 
@@ -608,6 +598,11 @@
                 row.id = String(i);
             });
             return normalized;
+        }
+
+        async function loadResultsFromJsonFile(file) {
+            const text = await file.text();
+            return parseAndValidateAiJson(text);
         }
 
         processButton.addEventListener('click', async () => {
@@ -690,9 +685,9 @@
                     pendingAiReceiptIds = pdfBase64Batch.map(item => item.id);
                     if (aiGeneratedPrompt) aiGeneratedPrompt.value = mainPrompt;
                     aiAssistantSection.classList.remove('hidden');
-                    statusText.textContent = "AI prompt ready. Upload files to your chatbot, then upload JSON response below.";
+                    statusText.textContent = "AI prompt ready. Upload files to your chatbot, then paste/upload the JSON response below.";
                     statusContainer.classList.add('hidden');
-                    alert("AI Mode: Prompt is ready. Copy it, run it in ChatGPT/Gemini with your receipts, then upload the JSON response.");
+                    alert("AI Mode: Prompt is ready. Copy it, run it in ChatGPT/Gemini with your receipts, then paste or upload the JSON response.");
                     return;
                 }
 
@@ -746,10 +741,10 @@ Use this Chart of Accounts to choose the best account_number:
 ${coaText}
 ---
 
-Use these preferred categories to choose the best category:
----
-${categoriesText}
----
+Create a concise line_description for each receipt:
+- Must be 1-3 words.
+- Must be uppercase.
+- Must summarize what the line item is (examples: OFFICE SUPPLIES, HOTEL STAY, VEHICLE FUEL).
 
 Return ONLY valid JSON (no markdown, no explanation) in this exact format:
 {
@@ -759,7 +754,7 @@ Return ONLY valid JSON (no markdown, no explanation) in this exact format:
       "vendor": "MERCHANT NAME IN ALL CAPS",
       "total": 0.00,
       "currency": "MZN",
-      "category": "CATEGORY IN ALL CAPS",
+      "line_description": "1-3 WORDS IN ALL CAPS",
       "account_number": "000 5170"
     }
   ]
@@ -785,6 +780,7 @@ ${idLines}
 Important rules:
 - Keep IDs exactly as listed.
 - Return currency as 3-letter code (MZN, USD, ZAR if known; otherwise best guess).
+- Return line_description in 1-3 words, uppercase.
 - Return ONLY raw JSON.
 `;
         }
@@ -904,7 +900,7 @@ Important rules:
 
                 tr.innerHTML += `
                     <td>
-                        <input class="input input-bordered input-sm w-full input-category uppercase" type="text" value="${result.category || ''}" placeholder="ITEM">
+                        <input class="input input-bordered input-sm w-full input-category uppercase" type="text" value="${result.category || ''}" placeholder="LINE DESCRIPTION">
                     </td>
                 `;
 
@@ -1151,12 +1147,12 @@ Important rules:
                 const amount = row.querySelector('.input-amount').value;
                 const currency = row.querySelector('.select-currency').value;
                 const vendor = row.querySelector('.input-vendor').value.toUpperCase();
-                const category = row.querySelector('.input-category').value.toUpperCase();
+                const lineDescription = row.querySelector('.input-category').value.toUpperCase();
                 const coa = row.querySelector('.select-coa').value;
                 
                 // Sanitize filename
                 const safeVendor = vendor.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
-                const safeCat = category.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
+                const safeCat = lineDescription.replace(/[^a-z0-9 ]/gi, '').substring(0, 30).trim();
                 
                 const filename = `${amount} ${currency} - ${safeVendor} - ${safeCat}.pdf`;
                 
@@ -1166,8 +1162,8 @@ Important rules:
                 const rawPdfBytes = allPageBytes[index];
                 
                 const pdfWithMeta = await addMetadataToPDF(rawPdfBytes, {
-                    title: `${amount} ${currency} - ${vendor} - ${category}`,
-                    subject: category,
+                    title: `${amount} ${currency} - ${vendor} - ${lineDescription}`,
+                    subject: lineDescription,
                     accountCode: coa
                 });
                 zip.file(filename, pdfWithMeta);
@@ -1303,13 +1299,18 @@ Important rules:
 
             loadJsonButton?.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const file = jsonInput?.files?.[0];
-                if (!file) {
-                    alert('Please choose a JSON file first.');
-                    return;
-                }
                 try {
-                    const parsedResults = await loadResultsFromJsonFile(file);
+                    const pastedJson = jsonPasteInput?.value?.trim() || '';
+                    const file = jsonInput?.files?.[0];
+                    let parsedResults;
+                    if (pastedJson) {
+                        parsedResults = parseAndValidateAiJson(pastedJson);
+                    } else if (file) {
+                        parsedResults = await loadResultsFromJsonFile(file);
+                    } else {
+                        alert('Please paste JSON or choose a JSON file first.');
+                        return;
+                    }
                     processedResultsGlobal = parsedResults.slice();
                     await saveResultsToStorage();
                     await renderTable(parsedResults);
