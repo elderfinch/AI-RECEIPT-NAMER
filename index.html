@@ -827,7 +827,7 @@
             const coaText = CHART_OF_ACCOUNTS_MAP.map(a => `  - "${a.number}": ${a.name}`).join("\n");
             const ids = Array.from({length: receiptCount}, (_, i) => i).join(', ');
 
-            return `You are an expert financial data extractor. I have attached ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} (${receiptCount === 1 ? 'a single PDF' : 'either a multi-page PDF where each page is one receipt, or a ZIP containing individual PDFs'}). Please analyse each receipt carefully.
+            return `You are an expert financial data extractor. I have attached ${receiptCount} receipt${receiptCount !== 1 ? 's' : ''} (${receiptCount === 1 ? 'a single PDF' : 'a multi-page PDF with each receipt. Each page will have no more than one transaction, but some receipts could take up more than one page. When determining the transaction amount, prioritize the small POS receipt with the card number printed if there is a mismatch between that one and the printed receipts.'}). Please analyse each receipt carefully.
 
 RECEIPT IDs: The receipts are numbered starting from 0. Receipt 0 is the first page/file, receipt 1 is the second, and so on. IDs for this batch: ${ids}.
 
