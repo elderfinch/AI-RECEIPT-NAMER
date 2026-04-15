@@ -833,9 +833,9 @@ RECEIPT IDs: The receipts are numbered starting from 0. Receipt 0 is the first p
 
 For EACH receipt extract:
   • id               — the receipt number as a string (e.g. "0", "1", "2")
-  • vendor           — merchant / store name IN ALL CAPS
+  • vendor           — merchant / store name IN ALL CAPS. Use the name on the larger receipt, not on the small POS machine (as applicable)
   • total            — the final total amount as a plain number (e.g. 123.45)
-  • currency         — 3-letter code. Choose from: MZN, USD, ZAR. Default to MZN if unsure.
+  • currency         — 3-letter code. Choose from: MZN, USD, ZAR or other currency code. Default to MZN if unsure.
   • line_item        — a 1–3 word description of what was purchased, IN ALL CAPS.
 
     A good line item:
